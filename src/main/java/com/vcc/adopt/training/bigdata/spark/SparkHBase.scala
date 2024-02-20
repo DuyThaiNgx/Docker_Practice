@@ -114,7 +114,7 @@ object SparkHBase {
       // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài). Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
       val hbaseConnection = HBaseConnectionFactory.createConnection()
       try {
-        val table = hbaseConnection.getTable(TableName.valueOf("test", "test_info"))
+        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
         val puts = new util.ArrayList[Put]()
         for (row <- rows) {
           val timeCreate = row.getAs[java.sql.Timestamp]("timeCreate").getTime
