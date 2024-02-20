@@ -20,6 +20,7 @@ object SparkHBase {
   private val personInfoLogPath = ConfigPropertiesLoader.getYamlConfig.getProperty("personInfoLogPath")
   private val personIdListLogPath = ConfigPropertiesLoader.getYamlConfig.getProperty("personIdListLogPath")
   private val ageAnalysisPath = ConfigPropertiesLoader.getYamlConfig.getProperty("ageAnalysisPath")
+  private val test = ConfigPropertiesLoader.getYamlConfig.getProperty("test")
 
   private def createDataFrameAndPutToHDFS(): Unit = {
     println(s"----- Make person info dataframe then write to parquet at ${personInfoLogPath} ----")
@@ -75,49 +76,9 @@ object SparkHBase {
 
   }
 
-  //  private def readHDFSThenPutToHBase(): Unit = {
-  //    println("----- Read person-info.parquet on HDFS then put to table person:person-info ----")
-  //    var df = spark.read.parquet(personInfoLogPath)
-  //    df = df
-  //      .withColumn("country", lit("US"))
-  //      .repartition(5)  // chia dataframe thành 5 phân vùng, mỗi phân vùng sẽ được chạy trên một worker (nếu không chia mặc định là 200)
-  //
-  //    val batchPutSize = 100  // để đẩy dữ liệu vào hbase nhanh, thay vì đẩy lẻ tẻ từng dòng thì ta đẩy theo lô, như ví dụ là cứ 100 dòng sẽ đẩy 1ần
-  //
-  //    df.foreachPartition((rows: Iterator[Row]) => {
-  //      // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài). Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
-  //      val hbaseConnection = HBaseConnectionFactory.createConnection()
-
-  //      try {
-  //        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
-  //        val puts = new util.ArrayList[Put]()
-  //        for (row <- rows) {
-  //          val personId = row.getAs[Long]("personId")
-  //          val name = row.getAs[String]("name")
-  //          val age = row.getAs[Int]("age")
-  //          val country = row.getAs[String]("country")
-  //
-  //          val put = new Put(Bytes.toBytes(personId))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("name"), Bytes.toBytes(name))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("age"), Bytes.toBytes(age))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("country"), Bytes.toBytes(country))
-  //          puts.add(put)
-  //          if (puts.size > batchPutSize) {
-  //            table.put(puts)
-  //            puts.clear()
-  //          }
-  //        }
-  //        if (puts.size() > 0) {  // đẩy nốt phần còn lại
-  //          table.put(puts)
-  //        }
-  //      } finally {
-  //        hbaseConnection.close()
-  //      }
-  //    })
-  //  }
-
   private def readHDFSThenPutToHBase(): Unit = {
-    // Định nghĩa kiểu dữ liệu của mô hình log
+    println("----- Read person-info.parquet on HDFS then put to table person:person-info ----")
+    //    var df = spark.read.parquet(personInfoLogPath)
     val schema = StructType(Seq(
       StructField("timeCreate", TimestampType, nullable = true),
       StructField("cookieCreate", TimestampType, nullable = true),
@@ -140,73 +101,174 @@ object SparkHBase {
       StructField("geographic", IntegerType, nullable = true),
       StructField("category", IntegerType, nullable = true)
     ))
-    // Khởi tạo Spark Session
-    val spark = SparkSession.builder()
-      .appName("ReadDatWriteParquet")
-      .master("local[*]")
-      .getOrCreate()
-
-    // Đường dẫn đến tập tin dat
-    val datFilePath = "hdfs://namenode:9000/datalog/sampledata/mergedata.dat"
-
-    // Đọc tập tin dat với schema đã định nghĩa
-    val datDataFrame = spark.read
-      .option("delimiter", "\t")
+    var df = spark.read
       .schema(schema)
-      .format("csv")
-      .load(datFilePath)
+      .option("delimiter", "\t")
+      .csv(test)
+    df = df
+      .withColumn("country", lit("US"))
+      .repartition() // chia dataframe thành 5 phân vùng, mỗi phân vùng sẽ được chạy trên một worker (nếu không chia mặc định là 200)
 
-    // Hiển thị nội dung của DataFrame
-    datDataFrame.show(100)
-
-    // Kết nối tới HBase
-    val hbaseConnection = HBaseConnectionFactory.createConnection()
-
-    try {
-      datDataFrame.foreachPartition(rows => {
-        val hbaseConnection = HBaseConnectionFactory.createConnection()
-        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
-
-
+    val batchPutSize = 100 // để đẩy dữ liệu vào hbase nhanh, thay vì đẩy lẻ tẻ từng dòng thì ta đẩy theo lô, như ví dụ là cứ 100 dòng sẽ đẩy 1ần
+    df.foreachPartition((rows: Iterator[Row]) => {
+      // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài). Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
+      val hbaseConnection = HBaseConnectionFactory.createConnection()
+      try {
+        val table = hbaseConnection.getTable(TableName.valueOf("test", "test_info"))
+        val puts = new util.ArrayList[Put]()
         for (row <- rows) {
-          val put = new Put(Bytes.toBytes(row.getAs[Long]("guid")))
+          val timeCreate = row.getAs[java.sql.Timestamp]("timeCreate").getTime
+          val cookieCreate = row.getAs[java.sql.Timestamp]("cookieCreate").getTime
+          val browserCode = row.getAs[Int]("browserCode")
+          val browserVer = row.getAs[String]("browserVer")
+          val osCode = row.getAs[Int]("osCode")
+          val osVer = Option(row.getAs[String]("osVer")).getOrElse(" ")
+          val ip = row.getAs[Long]("ip")
+          val locId = row.getAs[Int]("locId")
+          val domain = row.getAs[String]("domain")
+          val siteId = row.getAs[Int]("siteId")
+          val cId = row.getAs[Int]("cId")
+          val path = row.getAs[String]("path")
+          val referer = row.getAs[String]("referer")
+          val guid = row.getAs[Long]("guid")
+          val flashVersion = row.getAs[String]("flashVersion")
+          val jre = row.getAs[String]("jre")
+          val sr = row.getAs[String]("sr")
+          val sc = row.getAs[String]("sc")
+          val geographic = row.getAs[Int]("geographic")
+          val category = row.getAs[Int]("category")
 
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"), Bytes.toBytes(row.getAs[Timestamp]("timeCreate").toString))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cookieCreate"), Bytes.toBytes(row.getAs[Timestamp]("cookieCreate").toString))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"), Bytes.toBytes(row.getAs[Int]("browserCode")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserVer"), Bytes.toBytes(row.getAs[String]("browserVer")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osCode"), Bytes.toBytes(row.getAs[Int]("osCode")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osVer"), Bytes.toBytes(row.getAs[String]("osVer")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"), Bytes.toBytes(row.getAs[Long]("ip")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("locId"), Bytes.toBytes(row.getAs[Int]("locId")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("domain"), Bytes.toBytes(row.getAs[String]("domain")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("siteId"), Bytes.toBytes(row.getAs[Int]("siteId")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cId"), Bytes.toBytes(row.getAs[Int]("cId")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("path"), Bytes.toBytes(row.getAs[String]("path")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("referer"), Bytes.toBytes(row.getAs[String]("referer")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"), Bytes.toBytes(row.getAs[Long]("guid")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("flashVersion"), Bytes.toBytes(row.getAs[String]("flashVersion")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("jre"), Bytes.toBytes(row.getAs[String]("jre")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sr"), Bytes.toBytes(row.getAs[String]("sr")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sc"), Bytes.toBytes(row.getAs[String]("sc")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("geographic"), Bytes.toBytes(row.getAs[Int]("geographic")))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("category"), Bytes.toBytes(row.getAs[Int]("category")))
+          val put = new Put(Bytes.toBytes(timeCreate))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"), Bytes.toBytes(timeCreate))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cookieCreate"), Bytes.toBytes(cookieCreate))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"), Bytes.toBytes(browserCode))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserVer"), Bytes.toBytes(browserVer))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osCode"), Bytes.toBytes(osCode))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osVer"), Bytes.toBytes(osVer))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"), Bytes.toBytes(ip))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("locId"), Bytes.toBytes(locId))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("domain"), Bytes.toBytes(domain))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("siteId"), Bytes.toBytes(siteId))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cId"), Bytes.toBytes(cId))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("path"), Bytes.toBytes(path))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("referer"), Bytes.toBytes(referer))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"), Bytes.toBytes(guid))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("flashVersion"), Bytes.toBytes(flashVersion))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("jre"), Bytes.toBytes(jre))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sr"), Bytes.toBytes(sr))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sc"), Bytes.toBytes(sc))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("geographic"), Bytes.toBytes(geographic))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("category"), Bytes.toBytes(category))
 
-          table.put(put)
+          puts.add(put)
+          table.put(puts)
+          puts.clear()
         }
-
-        table.close()
-      })
-    } finally {
-      hbaseConnection.close()
-    }
-
-    // Đóng kết nối tới HBase
-    hbaseConnection.close()
-
-    // Đóng Spark Session
-    spark.stop()
+      } finally {
+        hbaseConnection.close()
+      }
+    })
   }
+
+
+
+
+
+  // ######################################################### START #######################################################
+  //  private def readHDFSThenPutToHBase(): Unit = {
+  //    // Định nghĩa kiểu dữ liệu của mô hình log
+  //    val schema = StructType(Seq(
+  //      StructField("timeCreate", TimestampType, nullable = true),
+  //      StructField("cookieCreate", TimestampType, nullable = true),
+  //      StructField("browserCode", IntegerType, nullable = true),
+  //      StructField("browserVer", StringType, nullable = true),
+  //      StructField("osCode", IntegerType, nullable = true),
+  //      StructField("osVer", StringType, nullable = true),
+  //      StructField("ip", LongType, nullable = true),
+  //      StructField("locId", IntegerType, nullable = true),
+  //      StructField("domain", StringType, nullable = true),
+  //      StructField("siteId", IntegerType, nullable = true),
+  //      StructField("cId", IntegerType, nullable = true),
+  //      StructField("path", StringType, nullable = true),
+  //      StructField("referer", StringType, nullable = true),
+  //      StructField("guid", LongType, nullable = true),
+  //      StructField("flashVersion", StringType, nullable = true),
+  //      StructField("jre", StringType, nullable = true),
+  //      StructField("sr", StringType, nullable = true),
+  //      StructField("sc", StringType, nullable = true),
+  //      StructField("geographic", IntegerType, nullable = true),
+  //      StructField("category", IntegerType, nullable = true)
+  //    ))
+  //    // Khởi tạo Spark Session
+  //    val spark = SparkSession.builder()
+  //      .appName("ReadDatWriteParquet")
+  //      .master("local[*]")
+  //      .getOrCreate()
+  //
+  //    // Đường dẫn đến tập tin dat
+  //    val datFilePath = "hdfs://namenode:9000/datalog/sampledata/mergedata.dat"
+  //
+  //    // Đọc tập tin dat với schema đã định nghĩa
+  //    val datDataFrame = spark.read
+  //      .option("delimiter", "\t")
+  //      .schema(schema)
+  //      .format("csv")
+  //      .load(datFilePath)
+  //
+  //    // Hiển thị nội dung của DataFrame
+  //    datDataFrame.show(100)
+  //
+  //    // Kết nối tới HBase
+  //    val hbaseConnection = HBaseConnectionFactory.createConnection()
+  //
+  //    try {
+  //      datDataFrame.foreachPartition(rows => {
+  //        val hbaseConnection = HBaseConnectionFactory.createConnection()
+  //        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
+  //
+  //
+  //        for (row <- rows) {
+  //          val put = new Put(Bytes.toBytes(row.getAs[Long]("guid")))
+  //
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"), Bytes.toBytes(row.getAs[Timestamp]("timeCreate").toString))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cookieCreate"), Bytes.toBytes(row.getAs[Timestamp]("cookieCreate").toString))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"), Bytes.toBytes(row.getAs[Int]("browserCode")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserVer"), Bytes.toBytes(row.getAs[String]("browserVer")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osCode"), Bytes.toBytes(row.getAs[Int]("osCode")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osVer"), Bytes.toBytes(row.getAs[String]("osVer")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"), Bytes.toBytes(row.getAs[Long]("ip")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("locId"), Bytes.toBytes(row.getAs[Int]("locId")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("domain"), Bytes.toBytes(row.getAs[String]("domain")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("siteId"), Bytes.toBytes(row.getAs[Int]("siteId")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cId"), Bytes.toBytes(row.getAs[Int]("cId")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("path"), Bytes.toBytes(row.getAs[String]("path")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("referer"), Bytes.toBytes(row.getAs[String]("referer")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"), Bytes.toBytes(row.getAs[Long]("guid")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("flashVersion"), Bytes.toBytes(row.getAs[String]("flashVersion")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("jre"), Bytes.toBytes(row.getAs[String]("jre")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sr"), Bytes.toBytes(row.getAs[String]("sr")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sc"), Bytes.toBytes(row.getAs[String]("sc")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("geographic"), Bytes.toBytes(row.getAs[Int]("geographic")))
+  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("category"), Bytes.toBytes(row.getAs[Int]("category")))
+  //
+  //          table.put(put)
+  //        }
+  //
+  //        table.close()
+  //      })
+  //    } finally {
+  //      hbaseConnection.close()
+  //    }
+  //
+  //    // Đóng kết nối tới HBase
+  //    hbaseConnection.close()
+  //
+  //    // Đóng Spark Session
+  //    spark.stop()
+  //  }
+
+
+  // ######################################################### END #######################################################
 
 
   private def readHBaseThenWriteToHDFS(): Unit = {
