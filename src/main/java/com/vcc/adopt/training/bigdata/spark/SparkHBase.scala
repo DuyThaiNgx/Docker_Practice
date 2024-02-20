@@ -20,7 +20,7 @@ object SparkHBase {
   private val personInfoLogPath = ConfigPropertiesLoader.getYamlConfig.getProperty("personInfoLogPath")
   private val personIdListLogPath = ConfigPropertiesLoader.getYamlConfig.getProperty("personIdListLogPath")
   private val ageAnalysisPath = ConfigPropertiesLoader.getYamlConfig.getProperty("ageAnalysisPath")
-  private val test = ConfigPropertiesLoader.getYamlConfig.getProperty("test")
+  private val test = ConfigPropertiesLoader.getYamlConfig.getProperty("test2")
 
   private def createDataFrameAndPutToHDFS(): Unit = {
     println(s"----- Make person info dataframe then write to parquet at ${personInfoLogPath} ----")
@@ -292,8 +292,10 @@ object SparkHBase {
         try {
           rows.map(row => {
             val get = new Get(Bytes.toBytes(row.getAs[Long]("personId")))
-            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("age")) // mặc định sẽ lấy ra tất cả các cột, dùng lệnh này giúp chỉ lấy cột age
-            (row.getAs[Long]("personId"), Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("age"))))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cookieCreate"))
+            (row.getAs[Long]("timeCreate"), Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCrate"))))
+            (row.getAs[Long]("cookieCrate"), Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("cookieCrate"))))
           })
         } finally {
           //          hbaseConnection.close()
@@ -308,12 +310,11 @@ object SparkHBase {
     analysisDF.write.mode("overwrite").parquet(ageAnalysisPath)
 
     personIdAndAgeDF.unpersist()
-
   }
 
   def main(args: Array[String]): Unit = {
     //    createDataFrameAndPutToHDFS()
     readHDFSThenPutToHBase()
-    //    readHBaseThenWriteToHDFS()
+    readHBaseThenWriteToHDFS()
   }
 }
