@@ -5,7 +5,7 @@ import com.vcc.adopt.utils.hbase.HBaseConnectionFactory
 import org.apache.hadoop.hbase.TableName
 import org.apache.hadoop.hbase.client.{Get, Put}
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructField, StructType, TimestampType}
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.functions._
 
@@ -31,10 +31,32 @@ object SparkHBase {
       Row(4L, "Yorn", 22)
     )
 
+//    val schema = StructType(Seq(
+//      StructField("personId", LongType, nullable = true),
+//      StructField("name", StringType, nullable = true),
+//      StructField("age", IntegerType, nullable = true)
+//    ))
     val schema = StructType(Seq(
-      StructField("personId", LongType, nullable = true),
-      StructField("name", StringType, nullable = true),
-      StructField("age", IntegerType, nullable = true)
+      StructField("timeCreate", TimestampType, nullable = true),
+      StructField("cookieCreate", TimestampType, nullable = true),
+      StructField("browserCode", IntegerType, nullable = true),
+      StructField("browserVer", StringType, nullable = true),
+      StructField("osCode", IntegerType, nullable = true),
+      StructField("osVer", StringType, nullable = true),
+      StructField("ip", LongType, nullable = true),
+      StructField("locId", IntegerType, nullable = true),
+      StructField("domain", StringType, nullable = true),
+      StructField("siteId", IntegerType, nullable = true),
+      StructField("cId", IntegerType, nullable = true),
+      StructField("path", StringType, nullable = true),
+      StructField("referer", StringType, nullable = true),
+      StructField("guid", LongType, nullable = true),
+      StructField("flashVersion", StringType, nullable = true),
+      StructField("jre", StringType, nullable = true),
+      StructField("sr", StringType, nullable = true),
+      StructField("sc", StringType, nullable = true),
+      StructField("geographic", IntegerType, nullable = true),
+      StructField("category", IntegerType, nullable = true)
     ))
 
     val df = spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
@@ -50,44 +72,91 @@ object SparkHBase {
       .parquet(personIdListLogPath)
   }
 
+//  private def readHDFSThenPutToHBase(): Unit = {
+//    println("----- Read person-info.parquet on HDFS then put to table person:person-info ----")
+//    var df = spark.read.parquet(personInfoLogPath)
+//    df = df
+//      .withColumn("country", lit("US"))
+//      .repartition(5)  // chia dataframe thành 5 phân vùng, mỗi phân vùng sẽ được chạy trên một worker (nếu không chia mặc định là 200)
+//
+//    val batchPutSize = 100  // để đẩy dữ liệu vào hbase nhanh, thay vì đẩy lẻ tẻ từng dòng thì ta đẩy theo lô, như ví dụ là cứ 100 dòng sẽ đẩy 1ần
+//
+//    df.foreachPartition((rows: Iterator[Row]) => {
+//      // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài). Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
+//      val hbaseConnection = HBaseConnectionFactory.createConnection()
+//      try {
+//        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
+//        val puts = new util.ArrayList[Put]()
+//        for (row <- rows) {
+//          val personId = row.getAs[Long]("personId")
+//          val name = row.getAs[String]("name")
+//          val age = row.getAs[Int]("age")
+//          val country = row.getAs[String]("country")
+//
+//          val put = new Put(Bytes.toBytes(personId))
+//          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("name"), Bytes.toBytes(name))
+//          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("age"), Bytes.toBytes(age))
+//          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("country"), Bytes.toBytes(country))
+//          puts.add(put)
+//          if (puts.size > batchPutSize) {
+//            table.put(puts)
+//            puts.clear()
+//          }
+//        }
+//        if (puts.size() > 0) {  // đẩy nốt phần còn lại
+//          table.put(puts)
+//        }
+//      } finally {
+//        hbaseConnection.close()
+//      }
+//    })
+//  }
+
   private def readHDFSThenPutToHBase(): Unit = {
-    println("----- Read person-info.parquet on HDFS then put to table person:person-info ----")
-    var df = spark.read.parquet(personInfoLogPath)
-    df = df
-      .withColumn("country", lit("US"))
-      .repartition(5)  // chia dataframe thành 5 phân vùng, mỗi phân vùng sẽ được chạy trên một worker (nếu không chia mặc định là 200)
+    // Định nghĩa kiểu dữ liệu của mô hình log
+    val schema = StructType(Seq(
+      StructField("timeCreate", TimestampType, nullable = true),
+      StructField("cookieCreate", TimestampType, nullable = true),
+      StructField("browserCode", IntegerType, nullable = true),
+      StructField("browserVer", StringType, nullable = true),
+      StructField("osCode", IntegerType, nullable = true),
+      StructField("osVer", StringType, nullable = true),
+      StructField("ip", LongType, nullable = true),
+      StructField("locId", IntegerType, nullable = true),
+      StructField("domain", StringType, nullable = true),
+      StructField("siteId", IntegerType, nullable = true),
+      StructField("cId", IntegerType, nullable = true),
+      StructField("path", StringType, nullable = true),
+      StructField("referer", StringType, nullable = true),
+      StructField("guid", LongType, nullable = true),
+      StructField("flashVersion", StringType, nullable = true),
+      StructField("jre", StringType, nullable = true),
+      StructField("sr", StringType, nullable = true),
+      StructField("sc", StringType, nullable = true),
+      StructField("geographic", IntegerType, nullable = true),
+      StructField("category", IntegerType, nullable = true)
+    ))
+    // Khởi tạo Spark Session
+    val spark = SparkSession.builder()
+      .appName("ReadDatWriteParquet")
+      .master("local[*]")
+      .getOrCreate()
 
-    val batchPutSize = 100  // để đẩy dữ liệu vào hbase nhanh, thay vì đẩy lẻ tẻ từng dòng thì ta đẩy theo lô, như ví dụ là cứ 100 dòng sẽ đẩy 1ần
+    // Đường dẫn đến tập tin dat
+    val datFilePath = "hdfs://namenode:9000/datalog/sampledata/mergedata.dat"
 
-    df.foreachPartition((rows: Iterator[Row]) => {
-      // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài). Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
-      val hbaseConnection = HBaseConnectionFactory.createConnection()
-      try {
-        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
-        val puts = new util.ArrayList[Put]()
-        for (row <- rows) {
-          val personId = row.getAs[Long]("personId")
-          val name = row.getAs[String]("name")
-          val age = row.getAs[Int]("age")
-          val country = row.getAs[String]("country")
+    // Đọc tập tin dat với schema đã định nghĩa
+    val datDataFrame = spark.read
+      .option("delimiter", "\t")
+      .schema(schema)
+      .format("csv")
+      .load(datFilePath)
 
-          val put = new Put(Bytes.toBytes(personId))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("name"), Bytes.toBytes(name))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("age"), Bytes.toBytes(age))
-          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("country"), Bytes.toBytes(country))
-          puts.add(put)
-          if (puts.size > batchPutSize) {
-            table.put(puts)
-            puts.clear()
-          }
-        }
-        if (puts.size() > 0) {  // đẩy nốt phần còn lại
-          table.put(puts)
-        }
-      } finally {
-        hbaseConnection.close()
-      }
-    })
+    // Hiển thị nội dung của DataFrame
+    datDataFrame.show()
+
+    // Đóng Spark Session
+    spark.stop()
   }
 
   private def readHBaseThenWriteToHDFS(): Unit = {
