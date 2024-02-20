@@ -162,40 +162,44 @@ object SparkHBase {
     // Kết nối tới HBase
     val hbaseConnection = HBaseConnectionFactory.createConnection()
 
-    datDataFrame.foreachPartition(rows => {
-      val hbaseConnection = HBaseConnectionFactory.createConnection()
-      val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
+    try {
+      datDataFrame.foreachPartition(rows => {
+        val hbaseConnection = HBaseConnectionFactory.createConnection()
+        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
 
 
-      for (row <- rows) {
-        val put = new Put(Bytes.toBytes(row.getAs[Long]("guid")))
+        for (row <- rows) {
+          val put = new Put(Bytes.toBytes(row.getAs[Long]("guid")))
 
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"), Bytes.toBytes(row.getAs[Timestamp]("timeCreate").toString))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cookieCreate"), Bytes.toBytes(row.getAs[Timestamp]("cookieCreate").toString))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"), Bytes.toBytes(row.getAs[Int]("browserCode")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserVer"), Bytes.toBytes(row.getAs[String]("browserVer")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osCode"), Bytes.toBytes(row.getAs[Int]("osCode")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osVer"), Bytes.toBytes(row.getAs[String]("osVer")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"), Bytes.toBytes(row.getAs[Long]("ip")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("locId"), Bytes.toBytes(row.getAs[Int]("locId")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("domain"), Bytes.toBytes(row.getAs[String]("domain")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("siteId"), Bytes.toBytes(row.getAs[Int]("siteId")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cId"), Bytes.toBytes(row.getAs[Int]("cId")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("path"), Bytes.toBytes(row.getAs[String]("path")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("referer"), Bytes.toBytes(row.getAs[String]("referer")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"), Bytes.toBytes(row.getAs[Long]("guid")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("flashVersion"), Bytes.toBytes(row.getAs[String]("flashVersion")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("jre"), Bytes.toBytes(row.getAs[String]("jre")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sr"), Bytes.toBytes(row.getAs[String]("sr")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sc"), Bytes.toBytes(row.getAs[String]("sc")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("geographic"), Bytes.toBytes(row.getAs[Int]("geographic")))
-        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("category"), Bytes.toBytes(row.getAs[Int]("category")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"), Bytes.toBytes(row.getAs[Timestamp]("timeCreate").toString))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cookieCreate"), Bytes.toBytes(row.getAs[Timestamp]("cookieCreate").toString))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"), Bytes.toBytes(row.getAs[Int]("browserCode")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserVer"), Bytes.toBytes(row.getAs[String]("browserVer")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osCode"), Bytes.toBytes(row.getAs[Int]("osCode")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osVer"), Bytes.toBytes(row.getAs[String]("osVer")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"), Bytes.toBytes(row.getAs[Long]("ip")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("locId"), Bytes.toBytes(row.getAs[Int]("locId")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("domain"), Bytes.toBytes(row.getAs[String]("domain")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("siteId"), Bytes.toBytes(row.getAs[Int]("siteId")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cId"), Bytes.toBytes(row.getAs[Int]("cId")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("path"), Bytes.toBytes(row.getAs[String]("path")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("referer"), Bytes.toBytes(row.getAs[String]("referer")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"), Bytes.toBytes(row.getAs[Long]("guid")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("flashVersion"), Bytes.toBytes(row.getAs[String]("flashVersion")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("jre"), Bytes.toBytes(row.getAs[String]("jre")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sr"), Bytes.toBytes(row.getAs[String]("sr")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sc"), Bytes.toBytes(row.getAs[String]("sc")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("geographic"), Bytes.toBytes(row.getAs[Int]("geographic")))
+          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("category"), Bytes.toBytes(row.getAs[Int]("category")))
 
-        table.put(put)
+          table.put(put)
+        }
+
+        table.close()
       })
-
-      table.close()
-    })
+    } finally {
+      hbaseConnection.close()
+    }
 
     // Đóng kết nối tới HBase
     hbaseConnection.close()
