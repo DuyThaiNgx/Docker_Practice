@@ -1,0 +1,3 @@
+personInfoLogPath: hdfs://namenode:9000/data/person-info.parquet
+personIdListLogPath: hdfs://namenode:9000/data/person-id-list.parquet
+ageAnalysisPath: hdfs://namenode:9000/data/analysis-person-info.parquet
