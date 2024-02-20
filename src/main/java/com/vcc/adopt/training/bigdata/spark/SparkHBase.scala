@@ -153,7 +153,7 @@ object SparkHBase {
       .load(datFilePath)
 
     // Hiển thị nội dung của DataFrame
-    datDataFrame.show(-1)
+    datDataFrame.show(100)
 
     // Đóng Spark Session
     spark.stop()
