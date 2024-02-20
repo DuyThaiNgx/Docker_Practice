@@ -167,7 +167,7 @@ object SparkHBase {
       val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
 
 
-      rows.foreach(row => {
+      for (row <- rows) {
         val put = new Put(Bytes.toBytes(row.getAs[Long]("guid")))
 
         put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"), Bytes.toBytes(row.getAs[Timestamp]("timeCreate").toString))
