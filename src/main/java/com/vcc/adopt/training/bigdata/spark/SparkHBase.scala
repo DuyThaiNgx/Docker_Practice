@@ -381,8 +381,11 @@ object SparkHBase {
     //    val filteredData = df.filter(col("timeCreate") > col("cookieCreate") + 600).select("guid", "domain", "path", "timeCreate")
     //    filteredData.write.text("result.dat")
     val filteredData = df.filter(col("timeCreate").cast("long") > col("cookieCreate").cast("long") + lit(600000)).select("guid", "domain", "path", "timeCreate")
-    filteredData.write.text("result.dat")
+//    filteredData.write.text("result.dat")
 
+    val stringTypedData = filteredData.withColumn("guid", col("guid").cast(StringType))
+
+    stringTypedData.write.text("result.dat")
     // Dừng SparkSession
     spark.stop()
   }
