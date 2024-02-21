@@ -25,7 +25,7 @@ object SparkHBase {
   private val personIdListLogPath = ConfigPropertiesLoader.getYamlConfig.getProperty("personIdListLogPath")
   private val ageAnalysisPath = ConfigPropertiesLoader.getYamlConfig.getProperty("ageAnalysisPath")
   private val test = ConfigPropertiesLoader.getYamlConfig.getProperty("test2")
-  private val datalog = ConfigPropertiesLoader.getYamlConfig.getProperty("TestKmean")
+  private val datalog = ConfigPropertiesLoader.getYamlConfig.getProperty("data_log")
   private val output4 = ConfigPropertiesLoader.getYamlConfig.getProperty("output4")
 
   private def createDataFrameAndPutToHDFS(): Unit = {
