@@ -350,7 +350,7 @@ object SparkHBase {
 
   def main(args: Array[String]): Unit = {
     //    createDataFrameAndPutToHDFS()
-//    readHDFSThenPutToHBase()
+    readHDFSThenPutToHBase()
 //    readHBaseThenWriteToHDFS()
     kmean()
   }
