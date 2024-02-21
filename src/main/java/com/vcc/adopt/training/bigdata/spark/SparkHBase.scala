@@ -11,6 +11,8 @@ import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.expressions.Window
+
 
 import java.util
 
@@ -23,6 +25,7 @@ object SparkHBase {
   private val personIdListLogPath = ConfigPropertiesLoader.getYamlConfig.getProperty("personIdListLogPath")
   private val ageAnalysisPath = ConfigPropertiesLoader.getYamlConfig.getProperty("ageAnalysisPath")
   private val test = ConfigPropertiesLoader.getYamlConfig.getProperty("test2")
+  private val ex = ConfigPropertiesLoader.getYamlConfig.getProperty("TestKmean")
 
   private def createDataFrameAndPutToHDFS(): Unit = {
     println(s"----- Make person info dataframe then write to parquet at ${personInfoLogPath} ----")
@@ -348,7 +351,7 @@ object SparkHBase {
     val parquetFile = "hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet"
 
     // Đọc dữ liệu từ file Parquet với schema đã định nghĩa
-    val df: DataFrame = spark.read.schema(schema).parquet(parquetFile)
+    val df: DataFrame = spark.read.schema(schema).parquet(ex)
 
     // Hiển thị schema của DataFrame để xác định các trường dữ liệu
     df.printSchema()
