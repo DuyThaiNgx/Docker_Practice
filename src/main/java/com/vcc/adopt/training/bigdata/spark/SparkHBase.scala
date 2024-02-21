@@ -316,6 +316,7 @@ object SparkHBase {
 
     personIdAndAgeDF.unpersist()
   }
+
   def kmean(): Unit = {
     // Khởi tạo SparkSession
     val spark = SparkSession.builder()
@@ -346,7 +347,7 @@ object SparkHBase {
     ))
 
     // Đọc dữ liệu từ file Parquet
-//    val df = spark.read.parquet("hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet")
+    //    val df = spark.read.parquet("hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet")
     // Đường dẫn tới file Parquet
     val parquetFile = "hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet"
 
@@ -377,7 +378,9 @@ object SparkHBase {
     val topBrowserByOS = popularBrowserByOS.withColumn("rank", row_number().over(windowSpecOS)).where(col("rank") === 1).drop("count")
 
     // 3.6. Lọc các dữ liệu có timeCreate nhiều hơn cookieCreate 10 phút, và chỉ lấy field guid, domain, path, timecreate và lưu lại thành file result.dat định dạng text và tải xuống.
-    val filteredData = df.filter(col("timeCreate") > col("cookieCreate") + 600).select("guid", "domain", "path", "timeCreate")
+    //    val filteredData = df.filter(col("timeCreate") > col("cookieCreate") + 600).select("guid", "domain", "path", "timeCreate")
+    //    filteredData.write.text("result.dat")
+    val filteredData = df.filter(col("timeCreate").cast("long") > col("cookieCreate").cast("long") + lit(600000)).select("guid", "domain", "path", "timeCreate")
     filteredData.write.text("result.dat")
 
     // Dừng SparkSession
@@ -387,7 +390,7 @@ object SparkHBase {
   def main(args: Array[String]): Unit = {
     //    createDataFrameAndPutToHDFS()
     readHDFSThenPutToHBase()
-//    readHBaseThenWriteToHDFS()
+    //    readHBaseThenWriteToHDFS()
     kmean()
   }
 }
