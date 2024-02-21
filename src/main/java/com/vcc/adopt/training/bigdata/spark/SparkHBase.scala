@@ -411,38 +411,27 @@ object SparkHBase {
     val parsedData = data.selectExpr("cast(split(data, ',')[0] as double) as x", "cast(split(data, ',')[1] as double) as y")
 
     // Hiển thị dữ liệu
-    parsedData.show()
+    //    parsedData.show()
 
     // Tạo một đối tượng KMeans
     val assembler = new VectorAssembler()
       .setInputCols(Array("x", "y"))
       .setOutputCol("features")
 
-    // Áp dụng chuyển đổi vào dữ liệu
     val dataWithFeatures = assembler.transform(parsedData)
+    //    dataWithFeatures.show()
 
-    // Hiển thị dữ liệu đã chuyển đổi
-    dataWithFeatures.show()
-
-    // Tạo một đối tượng KMeans
     val kmeans = new KMeans()
       .setK(k) // Số lượng cụm
       .setSeed(1L) // Seed để tái tạo kết quả
 
-    // Tạo và fit mô hình KMeans
     val model = kmeans.fit(dataWithFeatures)
 
-    // Tính toán các centroid cuối cùng
     val centroids = model.clusterCenters
-
-    // In ra các centroids cuối cùng
     centroids.foreach(println)
 
-    // Dự đoán cụm cho mỗi điểm dữ liệu
     val predictions = model.transform(dataWithFeatures)
-
-    // Hiển thị kết quả
-    predictions.show()
+    predictions.show(30000)
   }
 
   def main(args: Array[String]): Unit = {
