@@ -317,7 +317,7 @@ object SparkHBase {
     personIdAndAgeDF.unpersist()
   }
 
-  def kmean(): Unit = {
+  def ex3(): Unit = {
     // Khởi tạo SparkSession
     val spark = SparkSession.builder()
       .appName("ParquetKMeansProcessing")
@@ -403,6 +403,7 @@ object SparkHBase {
     //    createDataFrameAndPutToHDFS()
 //    readHDFSThenPutToHBase()
     //    readHBaseThenWriteToHDFS()
+    ex3()
     kmean()
   }
 }
