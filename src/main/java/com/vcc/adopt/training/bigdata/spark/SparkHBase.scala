@@ -446,7 +446,7 @@ object SparkHBase {
     //    createDataFrameAndPutToHDFS()
     //    readHDFSThenPutToHBase()
     //    readHBaseThenWriteToHDFS()
-//    datalogEx()
-    kmeanEx(3)
+    datalogEx()
+//    kmeanEx(3)
   }
 }
