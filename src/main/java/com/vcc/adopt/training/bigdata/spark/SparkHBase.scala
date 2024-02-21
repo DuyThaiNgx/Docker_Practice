@@ -367,7 +367,7 @@ object SparkHBase {
     //    val urlCountPerGuid = df.groupBy("guid", "timeCreate", "path").count()
     val urlCountPerGuid = dfWithDate.groupBy("guid", "timeCreate", "path").agg(count("*").alias("access_count"))
     val windowSpec = Window.partitionBy("guid", "timeCreate").orderBy(col("access_count").desc)
-    val topUrlPerGuid = urlCountPerGuid.withColumn("rank", row_number().over(windowSpec)).where(col("rank") === 1).drop("access_count")
+    val topUrlPerGuid = urlCountPerGuid.withColumn("rank", row_number().over(windowSpec)).where(col("rank") === 1)
     topUrlPerGuid.show()
 
     // 3.2. Các IP được sử dụng bởi nhiều guid nhất
@@ -403,6 +403,7 @@ object SparkHBase {
       concat_ws("\t", col("guid"), col("domain"), col("path"), col("timeCreate"))
     ).select("concatenated")
     tabSeparatedData.write.text(outputFilePath)
+    tabSeparatedData.show()
     // Dừng SparkSession
     spark.stop()
   }
