@@ -311,10 +311,47 @@ object SparkHBase {
 
     personIdAndAgeDF.unpersist()
   }
+  def kmean(): Unit = {
+    // Khởi tạo SparkSession
+    val spark = SparkSession.builder()
+      .appName("ParquetKMeansProcessing")
+      .getOrCreate()
+
+    // Đọc dữ liệu từ file Parquet
+    val df = spark.read.parquet("hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet")
+
+    // 3.1. Lấy url đã truy cập nhiều nhất trong ngày của mỗi guid
+    val urlCountPerGuid = df.groupBy("guid", "path").count()
+    val windowSpec = Window.partitionBy("guid").orderBy(col("count").desc)
+    val topUrlPerGuid = urlCountPerGuid.withColumn("rank", row_number().over(windowSpec)).where(col("rank") === 1).drop("count")
+
+    // 3.2. Các IP được sử dụng bởi nhiều guid nhất
+    val ipCountPerGuid = df.groupBy("ip").agg(countDistinct("guid").alias("guid_count"))
+    val topIPs = ipCountPerGuid.orderBy(col("guid_count").desc).limit(1000)
+
+    // 3.3. Lấy top 100 các domain được truy cập nhiều nhất
+    val topDomains = df.groupBy("domain").count().orderBy(col("count").desc).limit(100)
+
+    // 3.4. Lấy top 10 các LocId có số lượng IP không trùng nhiều nhất
+    val topLocIds = df.groupBy("locId").agg(countDistinct("ip").alias("unique_ip_count")).orderBy(col("unique_ip_count").desc).limit(10)
+
+    // 3.5. Tìm trình duyệt phổ biến nhất trong mỗi hệ điều hành (osCode và browserCode)
+    val popularBrowserByOS = df.groupBy("osCode", "browserCode").count()
+    val windowSpecOS = Window.partitionBy("osCode").orderBy(col("count").desc)
+    val topBrowserByOS = popularBrowserByOS.withColumn("rank", row_number().over(windowSpecOS)).where(col("rank") === 1).drop("count")
+
+    // 3.6. Lọc các dữ liệu có timeCreate nhiều hơn cookieCreate 10 phút, và chỉ lấy field guid, domain, path, timecreate và lưu lại thành file result.dat định dạng text và tải xuống.
+    val filteredData = df.filter(col("timeCreate") > col("cookieCreate") + 600).select("guid", "domain", "path", "timeCreate")
+    filteredData.write.text("result.dat")
+
+    // Dừng SparkSession
+    spark.stop()
+  }
 
   def main(args: Array[String]): Unit = {
     //    createDataFrameAndPutToHDFS()
-    readHDFSThenPutToHBase()
-    readHBaseThenWriteToHDFS()
+//    readHDFSThenPutToHBase()
+//    readHBaseThenWriteToHDFS()
+    kmean()
   }
 }
