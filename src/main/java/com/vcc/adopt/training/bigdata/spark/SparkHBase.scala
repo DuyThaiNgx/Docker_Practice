@@ -365,8 +365,8 @@ object SparkHBase {
     // 3.1. Lấy url đã truy cập nhiều nhất trong ngày của mỗi guid
     val dfWithDate = df.withColumn("timeCreate", to_date(col("timeCreate")))
     //    val urlCountPerGuid = df.groupBy("guid", "timeCreate", "path").count()
-    val urlCountPerGuid = dfWithDate.groupBy("guid", "date", "path").agg(count("*").alias("access_count"))
-    val windowSpec = Window.partitionBy("guid", "date").orderBy(col("access_count").desc)
+    val urlCountPerGuid = dfWithDate.groupBy("guid", "timeCreate", "path").agg(count("*").alias("access_count"))
+    val windowSpec = Window.partitionBy("guid", "timeCreate").orderBy(col("access_count").desc)
     val topUrlPerGuid = urlCountPerGuid.withColumn("rank", row_number().over(windowSpec)).where(col("rank") === 1).drop("access_count")
     topUrlPerGuid.show()
 
