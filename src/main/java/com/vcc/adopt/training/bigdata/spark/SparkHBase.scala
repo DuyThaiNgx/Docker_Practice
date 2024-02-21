@@ -12,6 +12,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.expressions.Window
+import org.apache.spark.ml.clustering.KMeans
+import org.apache.spark.ml.feature.VectorAssembler
 
 
 import java.util
