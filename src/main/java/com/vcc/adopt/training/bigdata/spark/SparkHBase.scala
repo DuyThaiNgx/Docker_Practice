@@ -403,7 +403,7 @@ object SparkHBase {
       concat_ws("\t", col("guid"), col("domain"), col("path"), col("timeCreate"))
     ).select("concatenated")
     tabSeparatedData.write.text(outputFilePath)
-    tabSeparatedData.show()
+//    tabSeparatedData.show()
     // Dừng SparkSession
     spark.stop()
   }
