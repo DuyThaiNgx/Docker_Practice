@@ -316,9 +316,40 @@ object SparkHBase {
     val spark = SparkSession.builder()
       .appName("ParquetKMeansProcessing")
       .getOrCreate()
+    // Định nghĩa schema cho file Parquet
+    val schema = StructType(Seq(
+      StructField("timeCreate", TimestampType, nullable = true),
+      StructField("cookieCreate", TimestampType, nullable = true),
+      StructField("browserCode", IntegerType, nullable = true),
+      StructField("browserVer", StringType, nullable = true),
+      StructField("osCode", IntegerType, nullable = true),
+      StructField("osVer", StringType, nullable = true),
+      StructField("ip", LongType, nullable = true),
+      StructField("locId", IntegerType, nullable = true),
+      StructField("domain", StringType, nullable = true),
+      StructField("siteId", IntegerType, nullable = true),
+      StructField("cId", IntegerType, nullable = true),
+      StructField("path", StringType, nullable = true),
+      StructField("referer", StringType, nullable = true),
+      StructField("guid", LongType, nullable = true),
+      StructField("flashVersion", StringType, nullable = true),
+      StructField("jre", StringType, nullable = true),
+      StructField("sr", StringType, nullable = true),
+      StructField("sc", StringType, nullable = true),
+      StructField("geographic", IntegerType, nullable = true),
+      StructField("category", IntegerType, nullable = true)
+    ))
 
     // Đọc dữ liệu từ file Parquet
-    val df = spark.read.parquet("hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet")
+//    val df = spark.read.parquet("hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet")
+    // Đường dẫn tới file Parquet
+    val parquetFile = "hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet"
+
+    // Đọc dữ liệu từ file Parquet với schema đã định nghĩa
+    val df: DataFrame = spark.read.schema(schema).parquet(parquetFile)
+
+    // Hiển thị schema của DataFrame để xác định các trường dữ liệu
+    df.printSchema()
 
     // 3.1. Lấy url đã truy cập nhiều nhất trong ngày của mỗi guid
     val urlCountPerGuid = df.groupBy("guid", "path").count()
