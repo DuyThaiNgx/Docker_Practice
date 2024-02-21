@@ -349,7 +349,7 @@ object SparkHBase {
     // Đọc dữ liệu từ file Parquet
     //    val df = spark.read.parquet("hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet")
     // Đường dẫn tới file Parquet
-    val parquetFile = "hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet"
+//    val parquetFile = "hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet"
 
     // Đọc dữ liệu từ file Parquet với schema đã định nghĩa
     val df: DataFrame = spark.read.schema(schema).parquet(ex)

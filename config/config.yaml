@@ -3,4 +3,4 @@ personIdListLogPath: hdfs://namenode:9000/data/person-id-list.parquet
 ageAnalysisPath: hdfs://namenode:9000/data/analysis-person-info.parquet
 test: hdfs://namenode:9000/datalog/sampledata/mergedata.dat
 test2: hdfs://namenode:9000/datalog/sampledata/sampletext/pt-v-1533870072206.dat
-TestKmean: hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet
+TestKmean: hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00007-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet
