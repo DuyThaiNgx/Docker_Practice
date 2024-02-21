@@ -30,6 +30,7 @@ object SparkHBase {
   private val test = ConfigPropertiesLoader.getYamlConfig.getProperty("test2")
   private val datalog = ConfigPropertiesLoader.getYamlConfig.getProperty("data_log")
   private val output4 = ConfigPropertiesLoader.getYamlConfig.getProperty("output4")
+  private val outputFilePath = ConfigPropertiesLoader.getYamlConfig.getProperty("outputFilePath")
 
   private def createDataFrameAndPutToHDFS(): Unit = {
     println(s"----- Make person info dataframe then write to parquet at ${personInfoLogPath} ----")
@@ -362,9 +363,11 @@ object SparkHBase {
     df.printSchema()
 
     // 3.1. Lấy url đã truy cập nhiều nhất trong ngày của mỗi guid
-    val urlCountPerGuid = df.groupBy("guid", "path").count()
-    val windowSpec = Window.partitionBy("guid").orderBy(col("count").desc)
-    val topUrlPerGuid = urlCountPerGuid.withColumn("rank", row_number().over(windowSpec)).where(col("rank") === 1).drop("count")
+    val dfWithDate = df.withColumn("timeCreate", to_date(col("timeCreate")))
+    //    val urlCountPerGuid = df.groupBy("guid", "timeCreate", "path").count()
+    val urlCountPerGuid = dfWithDate.groupBy("guid", "date", "path").agg(count("*").alias("access_count"))
+    val windowSpec = Window.partitionBy("guid", "date").orderBy(col("access_count").desc)
+    val topUrlPerGuid = urlCountPerGuid.withColumn("rank", row_number().over(windowSpec)).where(col("rank") === 1).drop("access_count")
     topUrlPerGuid.show()
 
     // 3.2. Các IP được sử dụng bởi nhiều guid nhất
@@ -387,18 +390,19 @@ object SparkHBase {
     topBrowserByOS.show()
 
     // 3.6. Lọc các dữ liệu có timeCreate nhiều hơn cookieCreate 10 phút, và chỉ lấy field guid, domain, path, timecreate và lưu lại thành file result.dat định dạng text và tải xuống.
-    //    val filteredData = df.filter(col("timeCreate") > col("cookieCreate") + 600).select("guid", "domain", "path", "timeCreate")
-    //    filteredData.write.text("result.dat")
+    val filteredData = df.filter(col("timeCreate").cast("long") > col("cookieCreate").cast("long") + lit(600000))
+      .select("guid", "domain", "path", "timeCreate")
 
-
-    //    val filteredData = df.filter(col("timeCreate").cast("long") > col("cookieCreate").cast("long") + lit(600000))
-    //      .select("guid", "domain", "path", "timeCreate")
-    //
-    //    filteredData.write.parquet("result.parquet")
-
-    //    val stringTypedData = filteredData.withColumn("guid", col("guid").cast(StringType))
-    //
-    //    stringTypedData.write.text("result.dat")
+    val stringTypedData = filteredData.selectExpr(
+      "CAST(guid AS STRING) AS guid",
+      "CAST(domain AS STRING) AS domain",
+      "CAST(path AS STRING) AS path",
+      "CAST(timeCreate AS STRING) AS timeCreate"
+    )
+    val tabSeparatedData = stringTypedData.withColumn("concatenated",
+      concat_ws("\t", col("guid"), col("domain"), col("path"), col("timeCreate"))
+    ).select("concatenated")
+    tabSeparatedData.write.text(outputFilePath)
     // Dừng SparkSession
     spark.stop()
   }
