@@ -25,7 +25,8 @@ object SparkHBase {
   private val personIdListLogPath = ConfigPropertiesLoader.getYamlConfig.getProperty("personIdListLogPath")
   private val ageAnalysisPath = ConfigPropertiesLoader.getYamlConfig.getProperty("ageAnalysisPath")
   private val test = ConfigPropertiesLoader.getYamlConfig.getProperty("test2")
-  private val ex = ConfigPropertiesLoader.getYamlConfig.getProperty("TestKmean")
+  private val datalog = ConfigPropertiesLoader.getYamlConfig.getProperty("TestKmean")
+  private val output4 = ConfigPropertiesLoader.getYamlConfig.getProperty("output4")
 
   private def createDataFrameAndPutToHDFS(): Unit = {
     println(s"----- Make person info dataframe then write to parquet at ${personInfoLogPath} ----")
@@ -317,7 +318,7 @@ object SparkHBase {
     personIdAndAgeDF.unpersist()
   }
 
-  def ex3(): Unit = {
+  def datalogEx(): Unit = {
     // Khởi tạo SparkSession
     val spark = SparkSession.builder()
       .appName("ParquetKMeansProcessing")
@@ -352,7 +353,7 @@ object SparkHBase {
     val parquetFile = "hdfs://namenode:9000/datalog/sampledata/dataparquet/parquetmergefile.parquet/part-00000-49f07a1e-d9ff-4a22-8038-c3beb6031d70-c000.snappy.parquet"
 
     // Đọc dữ liệu từ file Parquet với schema đã định nghĩa
-    val df: DataFrame = spark.read.schema(schema).parquet(ex)
+    val df: DataFrame = spark.read.schema(schema).parquet(datalog)
 
     // Hiển thị schema của DataFrame để xác định các trường dữ liệu
     df.printSchema()
@@ -387,23 +388,66 @@ object SparkHBase {
     //    filteredData.write.text("result.dat")
 
 
-//    val filteredData = df.filter(col("timeCreate").cast("long") > col("cookieCreate").cast("long") + lit(600000))
-//      .select("guid", "domain", "path", "timeCreate")
-//
-//    filteredData.write.parquet("result.parquet")
+    //    val filteredData = df.filter(col("timeCreate").cast("long") > col("cookieCreate").cast("long") + lit(600000))
+    //      .select("guid", "domain", "path", "timeCreate")
+    //
+    //    filteredData.write.parquet("result.parquet")
 
-//    val stringTypedData = filteredData.withColumn("guid", col("guid").cast(StringType))
-//
-//    stringTypedData.write.text("result.dat")
+    //    val stringTypedData = filteredData.withColumn("guid", col("guid").cast(StringType))
+    //
+    //    stringTypedData.write.text("result.dat")
     // Dừng SparkSession
     spark.stop()
   }
 
+  private def Kmean(k: Int): Unit = {
+    println("Start")
+    val data: DataFrame = spark.read.text(output4)
+      .toDF("data")
+
+    // Chuyển đổi dữ liệu từ cột 'data' sang cột 'x' và 'y'
+    val parsedData = data.selectExpr("cast(split(data, ',')[0] as double) as x", "cast(split(data, ',')[1] as double) as y")
+
+    // Hiển thị dữ liệu
+    parsedData.show()
+
+    // Tạo một đối tượng KMeans
+    val assembler = new VectorAssembler()
+      .setInputCols(Array("x", "y"))
+      .setOutputCol("features")
+
+    // Áp dụng chuyển đổi vào dữ liệu
+    val dataWithFeatures = assembler.transform(parsedData)
+
+    // Hiển thị dữ liệu đã chuyển đổi
+    dataWithFeatures.show()
+
+    // Tạo một đối tượng KMeans
+    val kmeans = new KMeans()
+      .setK(k) // Số lượng cụm
+      .setSeed(1L) // Seed để tái tạo kết quả
+
+    // Tạo và fit mô hình KMeans
+    val model = kmeans.fit(dataWithFeatures)
+
+    // Tính toán các centroid cuối cùng
+    val centroids = model.clusterCenters
+
+    // In ra các centroids cuối cùng
+    centroids.foreach(println)
+
+    // Dự đoán cụm cho mỗi điểm dữ liệu
+    val predictions = model.transform(dataWithFeatures)
+
+    // Hiển thị kết quả
+    predictions.show()
+  }
+
   def main(args: Array[String]): Unit = {
     //    createDataFrameAndPutToHDFS()
-//    readHDFSThenPutToHBase()
+    //    readHDFSThenPutToHBase()
     //    readHBaseThenWriteToHDFS()
-    ex3()
-//    kmean()
+    datalogEx()
+//    Kmean(3)
   }
 }
