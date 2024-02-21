@@ -420,6 +420,13 @@ object SparkHBase {
 
     val dataWithFeatures = assembler.transform(parsedData)
     //    dataWithFeatures.show()
+    // ####
+    // Loại bỏ bất kỳ hàng nào chứa giá trị null
+    val dataCleaned = parsedData.na.drop()
+
+    // Tạo DataFrame mới với các đặc trưng
+    val dataWithFeatures = assembler.transform(dataCleaned)
+
 
     val kmeans = new KMeans()
       .setK(k) // Số lượng cụm
