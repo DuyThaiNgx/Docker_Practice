@@ -403,7 +403,7 @@ object SparkHBase {
       concat_ws("\t", col("guid"), col("domain"), col("path"), col("timeCreate"))
     ).select("concatenated")
     tabSeparatedData.write.text(outputFilePath)
-//    tabSeparatedData.show()
+    //    tabSeparatedData.show()
     // Dừng SparkSession
     spark.stop()
   }
@@ -429,7 +429,6 @@ object SparkHBase {
     // ####
 
 
-
     val kmeans = new KMeans()
       .setK(k) // Số lượng cụm
       .setSeed(1L) // Seed để tái tạo kết quả
@@ -447,7 +446,7 @@ object SparkHBase {
     //    createDataFrameAndPutToHDFS()
     //    readHDFSThenPutToHBase()
     //    readHBaseThenWriteToHDFS()
-    datalogEx()
-//    kmeanEx(3)
+    //    datalogEx()
+    kmeanEx(3)
   }
 }
