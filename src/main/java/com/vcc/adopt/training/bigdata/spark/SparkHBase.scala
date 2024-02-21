@@ -380,12 +380,14 @@ object SparkHBase {
     // 3.6. Lọc các dữ liệu có timeCreate nhiều hơn cookieCreate 10 phút, và chỉ lấy field guid, domain, path, timecreate và lưu lại thành file result.dat định dạng text và tải xuống.
     //    val filteredData = df.filter(col("timeCreate") > col("cookieCreate") + 600).select("guid", "domain", "path", "timeCreate")
     //    filteredData.write.text("result.dat")
-    val filteredData = df.filter(col("timeCreate").cast("long") > col("cookieCreate").cast("long") + lit(600000)).select("guid", "domain", "path", "timeCreate")
-//    filteredData.write.text("result.dat")
+    val filteredData = df.filter(col("timeCreate").cast("long") > col("cookieCreate").cast("long") + lit(600000))
+      .withColumn("timeCreateString", col("timeCreate").cast("string"))
+      .select("guid", "domain", "path", "timeCreateString")
+    filteredData.write.text("result.dat")
 
-    val stringTypedData = filteredData.withColumn("guid", col("guid").cast(StringType))
-
-    stringTypedData.write.text("result.dat")
+//    val stringTypedData = filteredData.withColumn("guid", col("guid").cast(StringType))
+//
+//    stringTypedData.write.text("result.dat")
     // Dừng SparkSession
     spark.stop()
   }
