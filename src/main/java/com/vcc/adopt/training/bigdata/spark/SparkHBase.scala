@@ -176,49 +176,18 @@ object SparkHBase {
   }
 
   private def readHDFSThenPutToHBase(): Unit = {
-    println("----- Read person-info.parquet on HDFS then put to table person:person-info ----")
-//    var df = spark.read.parquet(datalog)
+    println("----- Read pageViewLog.parquet on HDFS then put to table pageviewlog ----")
     var df: DataFrame = spark.read.schema(schema).parquet(pageViewLogPath)
     df = df
       .withColumn("country", lit("US"))
-      .repartition(5) // chia dataframe thành 5 phân vùng, mỗi phân vùng sẽ được chạy
-                      // trên một worker (nếu không chia mặc định là 200)
-    val schema = StructType(Seq(
-      StructField("timeCreate", TimestampType, nullable = true),
-      StructField("cookieCreate", TimestampType, nullable = true),
-      StructField("browserCode", IntegerType, nullable = true),
-      StructField("browserVer", StringType, nullable = true),
-      StructField("osCode", IntegerType, nullable = true),
-      StructField("osVer", StringType, nullable = true),
-      StructField("ip", LongType, nullable = true),
-      StructField("locId", IntegerType, nullable = true),
-      StructField("domain", StringType, nullable = true),
-      StructField("siteId", IntegerType, nullable = true),
-      StructField("cId", IntegerType, nullable = true),
-      StructField("path", StringType, nullable = true),
-      StructField("referer", StringType, nullable = true),
-      StructField("guid", LongType, nullable = true),
-      StructField("flashVersion", StringType, nullable = true),
-      StructField("jre", StringType, nullable = true),
-      StructField("sr", StringType, nullable = true),
-      StructField("sc", StringType, nullable = true),
-      StructField("geographic", IntegerType, nullable = true),
-      StructField("category", IntegerType, nullable = true)
-    ))
-    var df = spark.read
-      .schema(schema)
-      .option("delimiter", "\t")
-      .csv(test)
-    df = df
-      .withColumn("country", lit("US"))
-      .repartition() // chia dataframe thành 5 phân vùng, mỗi phân vùng sẽ được chạy trên một worker (nếu không chia mặc định là 200)
+      .repartition(5) // chia dataframe thành 5 phân vùng, mỗi phân vùng sẽ được chạy trên một worker (nếu không chia mặc định là 200)
 
     val batchPutSize = 100 // để đẩy dữ liệu vào hbase nhanh, thay vì đẩy lẻ tẻ từng dòng thì ta đẩy theo lô, như ví dụ là cứ 100 dòng sẽ đẩy 1ần
     df.foreachPartition((rows: Iterator[Row]) => {
       // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài). Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
       val hbaseConnection = HBaseConnectionFactory.createConnection()
       try {
-        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
+        val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
         val puts = new util.ArrayList[Put]()
         for (row <- rows) {
           val timeCreate = row.getAs[java.sql.Timestamp]("timeCreate").getTime
@@ -265,8 +234,13 @@ object SparkHBase {
           put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("category"), Bytes.toBytes(category))
 
           puts.add(put)
-          table.put(puts)
-          puts.clear()
+          if (puts.size() > batchPutSize) {
+            table.put(puts)
+            puts.clear()
+          }
+          if (puts.size() > 0) {
+            table.put(puts)
+          }
         }
       } finally {
         hbaseConnection.close()
