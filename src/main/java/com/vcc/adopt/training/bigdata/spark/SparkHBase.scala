@@ -320,7 +320,7 @@ object SparkHBase {
     personIdAndAgeDF.unpersist()
   }
 
-  def getUrlVisitedByGuid(guid: Long, date: String, connection: Connection): List[String] = {
+  def getUrlVisitedByGuid(guid: Long, date: java.sql.Timestamp): List[String] = {
     //    val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
     val table: Table = connection.getTable(Bytes.toBytes("pageviewlog"))
 
