@@ -177,7 +177,12 @@ object SparkHBase {
 
   private def readHDFSThenPutToHBase(): Unit = {
     println("----- Read person-info.parquet on HDFS then put to table person:person-info ----")
-    var df = spark.read.parquet(datalog)
+//    var df = spark.read.parquet(datalog)
+    var df: DataFrame = spark.read.schema(schema).parquet(pageViewLogPath)
+    df = df
+      .withColumn("country", lit("US"))
+      .repartition(5) // chia dataframe thành 5 phân vùng, mỗi phân vùng sẽ được chạy
+                      // trên một worker (nếu không chia mặc định là 200)
     val schema = StructType(Seq(
       StructField("timeCreate", TimestampType, nullable = true),
       StructField("cookieCreate", TimestampType, nullable = true),
