@@ -320,10 +320,9 @@ object SparkHBase {
     personIdAndAgeDF.unpersist()
   }
 
-  def getUrlVisitedByGuid(guid: Long, date: java.sql.Timestamp): List[String] = {
-    //    val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+  def getUrlVisitedByGuid(guid: Long, dateString: String): List[String] = {
+    val connection = HBaseHelper.getConnection
     val table: Table = connection.getTable(Bytes.toBytes("pageviewlog"))
-
     val scan: Scan = new Scan()
     scan.setFilter(
       new SingleColumnValueFilter(
@@ -337,17 +336,21 @@ object SparkHBase {
     val urls = ListBuffer[String]()
     try {
       val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH)
-      for (result <- resultScanner) {
+      val targetDate = new Timestamp(dateFormat.parse(dateString).getTime())
+
+      while (resultScanner.next() != null) {
+        val result = resultScanner.next()
         val timeCreate = result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
         val url = result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("path"))
-        val visitDate = dateFormat.format(new Date(Bytes.toLong(timeCreate)))
-        if (visitDate.startsWith(date)) {
+        val resultTimestamp = new Timestamp(Bytes.toLong(timeCreate))
+        if (resultTimestamp.equals(targetDate)) {
           urls += Bytes.toString(url)
         }
       }
     } finally {
       resultScanner.close()
       table.close()
+      // Không đóng kết nối ở đây để tái sử dụng lại kết nối
     }
     urls.toList
   }
