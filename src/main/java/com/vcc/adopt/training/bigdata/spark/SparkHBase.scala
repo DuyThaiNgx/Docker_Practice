@@ -479,6 +479,6 @@ object SparkHBase {
     //    readHBaseThenWriteToHDFS()
     //    datalogEx()
     //    kmeanEx(3)
-    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17", connection)
+    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17")
   }
 }
