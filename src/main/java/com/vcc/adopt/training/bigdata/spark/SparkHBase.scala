@@ -16,7 +16,10 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.ml.clustering.KMeans
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-
+import org.apache.hadoop.hbase.client.{Connection, Get, Result}
+import scala.collection.mutable.ListBuffer
+import org.apache.hadoop.hbase.filter.{BinaryComparator, CompareFilter, SingleColumnValueFilter}
+import java.util.{Date, Locale}
 
 
 
@@ -315,6 +318,36 @@ object SparkHBase {
     personIdAndAgeDF.unpersist()
   }
 
+  def getUrlVisitedByGuid(guid: String, date: String, connection: Connection): List[String] = {
+    val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+    val scan: Scan = new Scan()
+    scan.setFilter(
+      new SingleColumnValueFilter(
+        Bytes.toBytes("cf"),
+        Bytes.toBytes("guid"),
+        CompareFilter.CompareOp.EQUAL,
+        new BinaryComparator(Bytes.toBytes(guid))
+      )
+    )
+    val resultScanner: ResultScanner = table.getScanner(scan)
+    val urls = ListBuffer[String]()
+    try {
+      val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH)
+      for (result <- resultScanner) {
+        val timeCreate = result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
+        val url = result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("path"))
+        val visitDate = dateFormat.format(new Date(Bytes.toLong(timeCreate)))
+        if (visitDate.startsWith(date)) {
+          urls += Bytes.toString(url)
+        }
+      }
+    } finally {
+      resultScanner.close()
+      table.close()
+    }
+    urls.toList
+  }
+
   def datalogEx(): Unit = {
     // Khởi tạo SparkSession
     val spark = SparkSession.builder()
@@ -401,39 +434,39 @@ object SparkHBase {
     spark.stop()
   }
 
-//  private def kmeanEx(k: Int): Unit = {
-//    println("Start")
-//    val data: DataFrame = spark.read.text(output4)
-//      .toDF("data")
-//
-//    // Chuyển đổi dữ liệu từ cột 'data' sang cột 'x' và 'y'
-//    val parsedData = data.selectExpr("cast(split(data, ',')[0] as double) as x", "cast(split(data, ',')[1] as double) as y")
-//
-//    // Hiển thị dữ liệu
-//    //    parsedData.show()
-//
-//    // Tạo một đối tượng KMeans
-//    val assembler = new VectorAssembler()
-//      .setInputCols(Array("x", "y"))
-//      .setOutputCol("features")
-//
-//    val dataWithFeatures = assembler.transform(parsedData)
-//    //    dataWithFeatures.show()
-//    // ####
-//
-//
-//    val kmeans = new KMeans()
-//      .setK(k) // Số lượng cụm
-//      .setSeed(1L) // Seed để tái tạo kết quả
-//
-//    val model = kmeans.fit(dataWithFeatures)
-//
-//    val centroids = model.clusterCenters
-//    centroids.foreach(println)
-//
-//    val predictions = model.transform(dataWithFeatures)
-//    predictions.show(30)
-//  }
+  //  private def kmeanEx(k: Int): Unit = {
+  //    println("Start")
+  //    val data: DataFrame = spark.read.text(output4)
+  //      .toDF("data")
+  //
+  //    // Chuyển đổi dữ liệu từ cột 'data' sang cột 'x' và 'y'
+  //    val parsedData = data.selectExpr("cast(split(data, ',')[0] as double) as x", "cast(split(data, ',')[1] as double) as y")
+  //
+  //    // Hiển thị dữ liệu
+  //    //    parsedData.show()
+  //
+  //    // Tạo một đối tượng KMeans
+  //    val assembler = new VectorAssembler()
+  //      .setInputCols(Array("x", "y"))
+  //      .setOutputCol("features")
+  //
+  //    val dataWithFeatures = assembler.transform(parsedData)
+  //    //    dataWithFeatures.show()
+  //    // ####
+  //
+  //
+  //    val kmeans = new KMeans()
+  //      .setK(k) // Số lượng cụm
+  //      .setSeed(1L) // Seed để tái tạo kết quả
+  //
+  //    val model = kmeans.fit(dataWithFeatures)
+  //
+  //    val centroids = model.clusterCenters
+  //    centroids.foreach(println)
+  //
+  //    val predictions = model.transform(dataWithFeatures)
+  //    predictions.show(30)
+  //  }
 
   def main(args: Array[String]): Unit = {
     //    createDataFrameAndPutToHDFS()
@@ -441,5 +474,6 @@ object SparkHBase {
     //    readHBaseThenWriteToHDFS()
     //    datalogEx()
     //    kmeanEx(3)
+    getUrlVisitedByGuid(3233862356250120478, )
   }
 }
