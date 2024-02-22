@@ -323,15 +323,6 @@ object SparkHBase {
   def getUrlVisitedByGuid(guid: Long, dateString: String): List[String] = {
     val connection = HBaseHelper.getConnection
     val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
-    val scan: Scan = new Scan()
-    scan.setFilter(
-      new SingleColumnValueFilter(
-        Bytes.toBytes("cf"),
-        Bytes.toBytes("guid"),
-        CompareFilter.CompareOp.EQUAL,
-        new BinaryComparator(Bytes.toBytes(guid))
-      )
-    )
     val resultScanner: ResultScanner = table.getScanner(scan)
     val urls = ListBuffer[String]()
     try {
