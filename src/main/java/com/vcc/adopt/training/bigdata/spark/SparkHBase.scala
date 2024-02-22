@@ -322,7 +322,7 @@ object SparkHBase {
 
   def getUrlVisitedByGuid(guid: Long, dateString: String): List[String] = {
     val connection = HBaseHelper.getConnection
-    val table: Table = connection.getTable(Bytes.toBytes("pageviewlog"))
+    val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
     val scan: Scan = new Scan()
     scan.setFilter(
       new SingleColumnValueFilter(
@@ -335,17 +335,17 @@ object SparkHBase {
     val resultScanner: ResultScanner = table.getScanner(scan)
     val urls = ListBuffer[String]()
     try {
-      val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH)
-      val targetDate = new Timestamp(dateFormat.parse(dateString).getTime())
+      val startRow = guid.toString + "_" + date.toString
+      val stopRow = guid.toString + "_" + date.toString + "|"
+      val scan = new Scan(Bytes.toBytes(startRow), Bytes.toBytes(stopRow))
 
-      while (resultScanner.next() != null) {
-        val result = resultScanner.next()
-        val timeCreate = result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
-        val url = result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("path"))
-        val resultTimestamp = new Timestamp(Bytes.toLong(timeCreate))
-        if (resultTimestamp.equals(targetDate)) {
-          urls += Bytes.toString(url)
-        }
+      // Thực hiện quét dữ liệu từ bảng HBase
+      val scanner = table.getScanner(scan)
+
+      // Liệt kê các URL đã truy cập trong ngày của GUID
+      scanner.forEach(result => {
+        val path = Bytes.toString(result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("path")))
+        println(path)
       }
     } finally {
       resultScanner.close()
