@@ -320,8 +320,8 @@ object SparkHBase {
     personIdAndAgeDF.unpersist()
   }
 
-  def getUrlVisitedByGuid(guid: Long, dateString: String): List[String] = {
-    val connection = HBaseHelper.getConnection
+  def getUrlVisitedByGuid(guid: Long, dateString: String): Unit = {
+    val hbaseConnection = HBaseConnectionFactory.createConnection()
     val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
     val resultScanner: ResultScanner = table.getScanner(scan)
     val urls = ListBuffer[String]()
@@ -339,11 +339,10 @@ object SparkHBase {
         println(path)
       }
     } finally {
-      resultScanner.close()
+      hbaseConnection.close()
       table.close()
       // Không đóng kết nối ở đây để tái sử dụng lại kết nối
     }
-    urls.toList
   }
 
   def datalogEx(): Unit = {
