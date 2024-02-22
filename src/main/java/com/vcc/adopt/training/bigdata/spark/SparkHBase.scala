@@ -342,7 +342,7 @@ object SparkHBase {
     }
   }
 
-    def getMostUsedIPsByGuid(guid: Long): List[String] = {
+    def getMostUsedIPsByGuid(guid: Long): Unit = {
       println("----- Các IP được sử dụng nhiều nhất của một guid (input: guid=> output: sort ds ip theo số lần xuất hiện) ----")
 
       val guidDF = spark.read.schema(schema).parquet(datalog)
