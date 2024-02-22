@@ -216,8 +216,8 @@ object SparkHBase {
         val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
         val puts = new util.ArrayList[Put]()
         for (row <- rows) {
-          val timeCreate = row.getAs[java.sql.Timestamp]("timeCreate").getTime
-          val cookieCreate = row.getAs[java.sql.Timestamp]("cookieCreate").getTime
+          val timeCreate = Option(row.getAs[java.sql.Timestamp]("timeCreate")).map(_.getTime).getOrElse(0L)
+          val cookieCreate = Option(row.getAs[java.sql.Timestamp]("cookieCreate")).map(_.getTime).getOrElse(0L)
           val browserCode = row.getAs[Int]("browserCode")
           val browserVer = row.getAs[String]("browserVer")
           val osCode = row.getAs[Int]("osCode")
