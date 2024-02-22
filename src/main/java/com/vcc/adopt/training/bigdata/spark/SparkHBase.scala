@@ -2,9 +2,9 @@ package com.vcc.adopt.training.bigdata.spark
 
 import com.vcc.adopt.config.ConfigPropertiesLoader
 import com.vcc.adopt.utils.hbase.HBaseConnectionFactory
+import org.apache.avro.LogicalTypes.date
 import org.apache.hadoop.hbase.{HBaseConfiguration, HConstants, TableName}
-import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Get, Put}
-import org.apache.hadoop.hbase.client.{Get, Put}
+import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Get, Put, Result, ResultScanner, Scan}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.spark.sql.execution.streaming.FileStreamSource.Timestamp
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructField, StructType, TimestampType}
@@ -16,15 +16,13 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.ml.clustering.KMeans
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import org.apache.hadoop.hbase.client.{Connection, Get, Result}
+
 import scala.collection.mutable.ListBuffer
 import org.apache.hadoop.hbase.filter.{BinaryComparator, CompareFilter, SingleColumnValueFilter}
+
 import java.util.{Date, Locale}
-import org.apache.hadoop.hbase.client.Scan
 import java.text.SimpleDateFormat
 import java.util.Date
-
-
 import java.util
 
 
@@ -323,8 +321,7 @@ object SparkHBase {
   def getUrlVisitedByGuid(guid: Long, dateString: String): Unit = {
     val hbaseConnection = HBaseConnectionFactory.createConnection()
     val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
-    val resultScanner: ResultScanner = table.getScanner(scan)
-    val urls = ListBuffer[String]()
+
     try {
       val startRow = guid.toString + "_" + date.toString
       val stopRow = guid.toString + "_" + date.toString + "|"
@@ -344,40 +341,40 @@ object SparkHBase {
       // Không đóng kết nối ở đây để tái sử dụng lại kết nối
     }
   }
-  def getMostUsedIPsByGuid(guid: Long): List[String] = {
-    val connection = HBaseHelper.getConnection
-    val table = connection.getTable(Bytes.toBytes("pageviewlog"))
 
-    val scan = new Scan()
-    scan.setFilter(
-      new SingleColumnValueFilter(
-        Bytes.toBytes("cf"),
-        Bytes.toBytes("guid"),
-        CompareFilter.CompareOp.EQUAL,
-        new BinaryComparator(Bytes.toBytes(guid))
-      )
-    )
-
-    val resultScanner: ResultScanner = table.getScanner(scan)
-    val ipCountMap = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
-
-    try {
-      resultScanner.asScala.foreach { result =>
-        val ip = Bytes.toString(result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip")))
-        ipCountMap(ip) += 1
-      }
-    } finally {
-      resultScanner.close()
-      table.close()
-      connection.close()
-    }
-
-    // Sắp xếp danh sách IP theo số lần xuất hiện giảm dần
-    val sortedIPs = ipCountMap.toList.sortBy(-_._2)
-
-    // Trả về danh sách các IP đã sắp xếp
-    sortedIPs.map(_._1)
-  }
+  //  def getMostUsedIPsByGuid(guid: Long): List[String] = {
+  //    val connection = HBaseHelper.getConnection
+  //    val table = connection.getTable(Bytes.toBytes("pageviewlog"))
+  //
+  //    val scan = new Scan()
+  //    scan.setFilter(
+  //      new SingleColumnValueFilter(
+  //        Bytes.toBytes("cf"),
+  //        Bytes.toBytes("guid"),
+  //        CompareFilter.CompareOp.EQUAL,
+  //        new BinaryComparator(Bytes.toBytes(guid))
+  //      )
+  //    )
+  //
+  //    val resultScanner: ResultScanner = table.getScanner(scan)
+  //    val ipCountMap = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
+  //
+  //    try {
+  //      resultScanner.asScala.foreach { result =>
+  //        val ip = Bytes.toString(result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip")))
+  //        ipCountMap(ip) += 1
+  //      }
+  //    } finally {
+  //      resultScanner.close()
+  //      table.close()
+  //      connection.close()
+  //    }
+  //    // Sắp xếp danh sách IP theo số lần xuất hiện giảm dần
+  //    val sortedIPs = ipCountMap.toList.sortBy(-_._2)
+  //
+  //    // Trả về danh sách các IP đã sắp xếp
+  //    sortedIPs.map(_._1)
+  //  }
 
   def datalogEx(): Unit = {
     // Khởi tạo SparkSession
@@ -506,7 +503,8 @@ object SparkHBase {
     //    readHBaseThenWriteToHDFS()
     //    datalogEx()
     //    kmeanEx(3)
-//    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17")
-    getMostUsedIPsByGuid(6638696843075557544L)
+    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17")
+    //    getMostUsedIPsByGuid(6638696843075557544L)
   }
 }
+
