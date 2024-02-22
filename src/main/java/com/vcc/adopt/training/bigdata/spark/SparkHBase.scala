@@ -4,6 +4,7 @@ import com.vcc.adopt.config.ConfigPropertiesLoader
 import com.vcc.adopt.utils.hbase.HBaseConnectionFactory
 import org.apache.hadoop.hbase.{HBaseConfiguration, HConstants, TableName}
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Get, Put}
+import org.apache.hadoop.hbase.client.{Get, Put}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.spark.sql.execution.streaming.FileStreamSource.Timestamp
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructField, StructType, TimestampType}
@@ -15,6 +16,8 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.ml.clustering.KMeans
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+
+
 
 
 import java.util
