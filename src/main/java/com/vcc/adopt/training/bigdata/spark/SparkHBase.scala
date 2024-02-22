@@ -25,7 +25,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 
-
 import java.util
 
 
@@ -322,8 +321,8 @@ object SparkHBase {
   }
 
   def getUrlVisitedByGuid(guid: Long, date: String, connection: Connection): List[String] = {
-//    val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
-    val table: Table = connection.getTable(Bytes.toBytes("bai4:pageviewlog))
+    //    val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+    val table: Table = connection.getTable(Bytes.toBytes("bai4:pageviewlog"))
 
     val scan: Scan = new Scan()
     scan.setFilter(
@@ -480,6 +479,6 @@ object SparkHBase {
     //    readHBaseThenWriteToHDFS()
     //    datalogEx()
     //    kmeanEx(3)
-    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17" ,connection)
+    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17", connection)
   }
 }
