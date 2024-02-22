@@ -20,7 +20,6 @@ import org.apache.hadoop.hbase.client.{Connection, Get, Result}
 import scala.collection.mutable.ListBuffer
 import org.apache.hadoop.hbase.filter.{BinaryComparator, CompareFilter, SingleColumnValueFilter}
 import java.util.{Date, Locale}
-import org.apache.hadoop.hbase.client.{Connection, TableName, Table, ResultScanner}
 import org.apache.hadoop.hbase.client.Scan
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -323,7 +322,9 @@ object SparkHBase {
   }
 
   def getUrlVisitedByGuid(guid: Long, date: String, connection: Connection): List[String] = {
-    val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+//    val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+    val table: Table = connection.getTable(Bytes.toBytes("bai4:pageviewlog))
+
     val scan: Scan = new Scan()
     scan.setFilter(
       new SingleColumnValueFilter(
