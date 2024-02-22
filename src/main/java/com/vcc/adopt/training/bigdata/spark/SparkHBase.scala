@@ -318,7 +318,7 @@ object SparkHBase {
     personIdAndAgeDF.unpersist()
   }
 
-  def getUrlVisitedByGuid(guid: String, date: String, connection: Connection): List[String] = {
+  def getUrlVisitedByGuid(guid: Long, date: String, connection: Connection): List[String] = {
     val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
     val scan: Scan = new Scan()
     scan.setFilter(
