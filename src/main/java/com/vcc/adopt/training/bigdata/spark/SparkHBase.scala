@@ -337,7 +337,7 @@ object SparkHBase {
       scanner.forEach(result => {
         val path = Bytes.toString(result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("path")))
         println(path)
-      }
+      })
     } finally {
       hbaseConnection.close()
       table.close()
