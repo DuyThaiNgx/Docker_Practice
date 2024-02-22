@@ -342,39 +342,30 @@ object SparkHBase {
     }
   }
 
-  //  def getMostUsedIPsByGuid(guid: Long): List[String] = {
-  //    val connection = HBaseHelper.getConnection
-  //    val table = connection.getTable(Bytes.toBytes("pageviewlog"))
-  //
-  //    val scan = new Scan()
-  //    scan.setFilter(
-  //      new SingleColumnValueFilter(
-  //        Bytes.toBytes("cf"),
-  //        Bytes.toBytes("guid"),
-  //        CompareFilter.CompareOp.EQUAL,
-  //        new BinaryComparator(Bytes.toBytes(guid))
-  //      )
-  //    )
-  //
-  //    val resultScanner: ResultScanner = table.getScanner(scan)
-  //    val ipCountMap = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
-  //
-  //    try {
-  //      resultScanner.asScala.foreach { result =>
-  //        val ip = Bytes.toString(result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip")))
-  //        ipCountMap(ip) += 1
-  //      }
-  //    } finally {
-  //      resultScanner.close()
-  //      table.close()
-  //      connection.close()
-  //    }
-  //    // Sắp xếp danh sách IP theo số lần xuất hiện giảm dần
-  //    val sortedIPs = ipCountMap.toList.sortBy(-_._2)
-  //
-  //    // Trả về danh sách các IP đã sắp xếp
-  //    sortedIPs.map(_._1)
-  //  }
+    def getMostUsedIPsByGuid(guid: Long): List[String] = {
+      println("----- Các IP được sử dụng nhiều nhất của một guid (input: guid=> output: sort ds ip theo số lần xuất hiện) ----")
+
+      val guidDF = spark.read.schema(schema).parquet(datalog)
+      import spark.implicits._
+      val guidAndIpDF = guidDF
+        .repartition(5)
+        .mapPartitions((rows: Iterator[Row]) => {
+          val hbaseConnection = HBaseConnectionFactory.createConnection()
+          val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+          try {
+            rows.map(row => {
+              val get = new Get(Bytes.toBytes(row.getAs[Long]("guid")))
+              get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip")) // mặc định sẽ lấy ra tất cả các cột, dùng lệnh này giúp chỉ lấy cột age
+              (row.getAs[Long]("guid"), Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip"))))
+            })
+          } finally {
+            //          hbaseConnection.close()
+          }
+        }).toDF("guid", "ip")
+
+      guidAndIpDF.persist()
+      guidAndIpDF.show()
+    }
 
   def datalogEx(): Unit = {
     // Khởi tạo SparkSession
@@ -504,6 +495,7 @@ object SparkHBase {
     //    datalogEx()
     //    kmeanEx(3)
     getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17")
+
     //    getMostUsedIPsByGuid(6638696843075557544L)
   }
 }
