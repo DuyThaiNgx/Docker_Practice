@@ -469,11 +469,12 @@ object SparkHBase {
   //  }
 
   def main(args: Array[String]): Unit = {
+    val connection = ConnectionFactory.createConnection()
     //    createDataFrameAndPutToHDFS()
     readHDFSThenPutToHBase()
     //    readHBaseThenWriteToHDFS()
     //    datalogEx()
     //    kmeanEx(3)
-    getUrlVisitedByGuid(3233862356250120478, )
+    getUrlVisitedByGuid(6638696843075557544, 2018-08-10 10:57:17,connection)
   }
 }
