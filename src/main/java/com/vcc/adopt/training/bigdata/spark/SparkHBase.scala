@@ -322,7 +322,7 @@ object SparkHBase {
 
   def getUrlVisitedByGuid(guid: Long, date: String, connection: Connection): List[String] = {
     //    val table: Table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
-    val table: Table = connection.getTable(Bytes.toBytes("bai4:pageviewlog"))
+    val table: Table = connection.getTable(Bytes.toBytes("pageviewlog"))
 
     val scan: Scan = new Scan()
     scan.setFilter(
