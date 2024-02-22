@@ -35,6 +35,29 @@ object SparkHBase {
   private val output4 = ConfigPropertiesLoader.getYamlConfig.getProperty("output4")
   private val outputFilePath = ConfigPropertiesLoader.getYamlConfig.getProperty("outputFilePath")
 
+  val schema = StructType(Seq(
+    StructField("timeCreate", TimestampType, nullable = true),
+    StructField("cookieCreate", TimestampType, nullable = true),
+    StructField("browserCode", IntegerType, nullable = true),
+    StructField("browserVer", StringType, nullable = true),
+    StructField("osCode", IntegerType, nullable = true),
+    StructField("osVer", StringType, nullable = true),
+    StructField("ip", LongType, nullable = true),
+    StructField("locId", IntegerType, nullable = true),
+    StructField("domain", StringType, nullable = true),
+    StructField("siteId", IntegerType, nullable = true),
+    StructField("cId", IntegerType, nullable = true),
+    StructField("path", StringType, nullable = true),
+    StructField("referer", StringType, nullable = true),
+    StructField("guid", LongType, nullable = true),
+    StructField("flashVersion", StringType, nullable = true),
+    StructField("jre", StringType, nullable = true),
+    StructField("sr", StringType, nullable = true),
+    StructField("sc", StringType, nullable = true),
+    StructField("geographic", IntegerType, nullable = true),
+    StructField("category", IntegerType, nullable = true)
+  ))
+
   // ######################################################### START #######################################################
   //  private def readHDFSThenPutToHBase(): Unit = {
   //    // Định nghĩa kiểu dữ liệu của mô hình log
