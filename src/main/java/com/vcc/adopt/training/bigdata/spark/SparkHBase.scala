@@ -6,14 +6,24 @@ import org.apache.avro.LogicalTypes.date
 import org.apache.hadoop.hbase.{HBaseConfiguration, HConstants, TableName}
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Get, Put, Result, ResultScanner, Scan}
 import org.apache.hadoop.hbase.util.Bytes
+import org.apache.spark.sql.execution.streaming.FileStreamSource.Timestamp
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructField, StructType, TimestampType}
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.expressions.Window
+import org.apache.spark.ml.clustering.KMeans
+import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+
+import scala.collection.mutable.ListBuffer
+import org.apache.hadoop.hbase.filter.{BinaryComparator, CompareFilter, SingleColumnValueFilter}
 
 import java.sql.Timestamp
+import java.util.{Date, Locale}
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util
 
 
@@ -165,35 +175,9 @@ object SparkHBase {
 
     personIdAndAgeDF.unpersist()
   }
-
-  def getUrlVisitedByGuid(guid: Long, dateString: String): Unit = {
+  // 4.1
+  def getUrlVisitedByGuid(guid: Long, date: Long): Unit = {
     println("----- Url path of a Guid in 24h  ----")
-    val hbaseConnection = HBaseConnectionFactory.createConnection()
-    val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
-
-    try {
-      val startRow = guid.toString + "_" + date.toString
-      val stopRow = guid.toString + "_" + date.toString + "|"
-      val scan = new Scan(Bytes.toBytes(startRow), Bytes.toBytes(stopRow))
-
-      // Thực hiện quét dữ liệu từ bảng HBase
-      val scanner = table.getScanner(scan)
-
-      // Liệt kê các URL đã truy cập trong ngày của GUID
-      scanner.forEach(result => {
-        val path = Bytes.toString(result.getValue(Bytes.toBytes("cf"), Bytes.toBytes("path")))
-        println(path)
-      })
-    } finally {
-      hbaseConnection.close()
-      table.close()
-      // Không đóng kết nối ở đây để tái sử dụng lại kết nối
-    }
-  }
-
-  def getMostUsedIPsByGuid(guid: Long, date: Long): Unit = {
-    println("----- Most IP of a Guid  ----")
-
     val guidDF = spark.read.schema(schema).parquet(datalog)
     import spark.implicits._
     val guidAndIpDF = guidDF
@@ -221,7 +205,36 @@ object SparkHBase {
     val result = guidAndIpDF.filter($"guid" === guid && $"timeCreate" > date && $"timeCreate" < date + (24 * 60 * 60 * 1000)).select("path").distinct()
     result.show()
   }
+  // 4.2
+  def getMostUsedIPsByGuid(guid: Long): Unit = {
+    println("----- Most IP of a Guid  ----")
 
+    val guidDF = spark.read.schema(schema).parquet(datalog)
+    import spark.implicits._
+    val guidAndIpDF = guidDF
+      .repartition(5)
+      .mapPartitions((rows: Iterator[Row]) => {
+        val hbaseConnection = HBaseConnectionFactory.createConnection()
+        val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+        try {
+          rows.map(row => {
+            val get = new Get(Bytes.toBytes(Option(row.getAs[java.sql.Timestamp]("cookieCreate")).map(_.getTime).getOrElse(0L)))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip")) // mặc định sẽ lấy ra tất cả các cột, dùng lệnh này giúp chỉ lấy cột age
+            (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))), Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip"))))
+          })
+        } finally {
+          //          hbaseConnection.close()
+        }
+      }).toDF("guid", "ip")
+
+    guidAndIpDF.persist()
+    guidAndIpDF.show()
+    val result: DataFrame = guidAndIpDF.filter($"guid" === guid).groupBy("ip").count().orderBy(desc("count")).toDF("ip", "count")
+
+    result.show()
+  }
+  // 4.3
   def findLatestAccessTimeByGuid(guid: Long): Unit = {
     println("----- Latest Access Time of a Guid  ----")
 
@@ -264,6 +277,7 @@ object SparkHBase {
     guidAndTimeDF.unpersist()
   }
 
+  // 4.4
 
   def getGUIDByOsCodeAndBrowsecode(osCode: Int, browserCode: Int, t1: Long, t2: Long): Unit = {
     println("----- Tính lấy các guid mà có oscode= x, browsercode = y, thời gian createtime nằm trong khoảng từ t1-t2 ----")
@@ -308,7 +322,7 @@ object SparkHBase {
     getGuidByOsCode.show(50) // in ra 50 bản ghi
     guidAndTimeDF.unpersist()
   }
-
+  // Bai 3
   def datalogEx(): Unit = {
     // Khởi tạo SparkSession
     val spark = SparkSession.builder()
