@@ -270,6 +270,51 @@ object SparkHBase {
     guidAndTimeDF.unpersist()
   }
 
+
+  def getGUIDByOsCodeAndBrowsecode(osCode: Int, browserCode: Int, t1: Long, t2: Long): Unit = {
+    println("----- Tính lấy các guid mà có oscode= x, browsercode = y, thời gian createtime nằm trong khoảng từ t1-t2 ----")
+
+    val spark = SparkSession.builder().appName("GetGuid").getOrCreate()
+
+    // Read data from parquet file
+    val guidDF = spark.read.schema(schema).parquet(datalog)
+    import spark.implicits._
+
+    val guidAndTimeDF = guidDF
+      .repartition(5)
+      .mapPartitions((rows: Iterator[Row]) => {
+        val connection = HBaseConnectionFactory.createConnection()
+        val table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+        try {
+          rows.map(row => {
+            val get = new Get(Bytes.toBytes(Option(row.getAs[java.sql.Timestamp]("cookieCreate")).map(_.getTime).getOrElse(0L)))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osCode"))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"))
+            (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))),
+              //              new Timestamp(Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate")))),
+              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))),
+              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("osCode"))),
+              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"))))
+          })
+        } finally {
+          //          table.close()
+          //          connection.close()
+        }
+      }).toDF("guid", "timeCreate", "osCode", "browserCode")
+
+    guidAndTimeDF.persist()
+    guidAndTimeDF.show()
+
+    val getGuidByOsCode = guidAndTimeDF.filter($"osCode" === osCode && $"browserCode" === browserCode &&
+      $"timeCreate" > t1 && $"timeCreate" < t2)
+
+    println("Guid has osCode & browserCode in time between t1 & t2 is: ")
+    getGuidByOsCode.show()
+    guidAndTimeDF.unpersist()
+  }
+
   def datalogEx(): Unit = {
     // Khởi tạo SparkSession
     val spark = SparkSession.builder()
@@ -367,6 +412,7 @@ object SparkHBase {
 
     //    getMostUsedIPsByGuid(8133866058245435043L)
     findLatestAccessTimeByGuid(8133866058245435043L)
+    getGUIDByOsCodeAndBrowsecode(10,16,1533195266000L,1533995266000L)
   }
 }
 
