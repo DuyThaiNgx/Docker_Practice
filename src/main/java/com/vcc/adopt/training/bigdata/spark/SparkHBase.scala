@@ -232,7 +232,6 @@ object SparkHBase {
     println("----- Latest Access Time of a Guid  ----")
 
     val spark = SparkSession.builder().appName("LatestAccessTime").getOrCreate()
-    val datalog = "path_to_your_datalog_file"
 
     // Read data from parquet file
     val guidDF = spark.read.schema(schema).parquet(datalog)
