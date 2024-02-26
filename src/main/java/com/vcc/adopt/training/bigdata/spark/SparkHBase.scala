@@ -343,7 +343,7 @@ object SparkHBase {
   }
 
   def getMostUsedIPsByGuid(guid: Long): Unit = {
-    println("----- Các IP được sử dụng nhiều nhất của một guid (input: guid=> output: sort ds ip theo số lần xuất hiện) ----")
+    println("----- Most IP of a Guid (input: guid=> output: sort ds ip theo số lần xuất hiện) ----")
 
     val guidDF = spark.read.schema(schema).parquet(datalog)
     import spark.implicits._
@@ -365,8 +365,10 @@ object SparkHBase {
 
     guidAndIpDF.persist()
     guidAndIpDF.show()
-  }
+    val result: DataFrame = guidAndIpDF.filter($"guid" === guid).groupBy("ip").count().orderBy(desc("count")).toDF("ip", "count")
 
+    result.show()
+  }
   def datalogEx(): Unit = {
     // Khởi tạo SparkSession
     val spark = SparkSession.builder()
@@ -490,13 +492,13 @@ object SparkHBase {
   def main(args: Array[String]): Unit = {
     val connection = ConnectionFactory.createConnection()
     //    createDataFrameAndPutToHDFS()
-    //    readHDFSThenPutToHBase()
+        readHDFSThenPutToHBase()
     //    readHBaseThenWriteToHDFS()
     //    datalogEx()
     //    kmeanEx(3)
     //    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17")
 
-    getMostUsedIPsByGuid(6638696843075557544L)
+//    getMostUsedIPsByGuid(6638696843075557544L)
   }
 }
 
