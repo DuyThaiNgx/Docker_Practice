@@ -6,23 +6,14 @@ import org.apache.avro.LogicalTypes.date
 import org.apache.hadoop.hbase.{HBaseConfiguration, HConstants, TableName}
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Get, Put, Result, ResultScanner, Scan}
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.spark.sql.execution.streaming.FileStreamSource.Timestamp
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructField, StructType, TimestampType}
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.ml.clustering.KMeans
-import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
-import scala.collection.mutable.ListBuffer
-import org.apache.hadoop.hbase.filter.{BinaryComparator, CompareFilter, SingleColumnValueFilter}
-
-import java.util.{Date, Locale}
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.sql.Timestamp
 import java.util
 
 
@@ -176,6 +167,7 @@ object SparkHBase {
   }
 
   def getUrlVisitedByGuid(guid: Long, dateString: String): Unit = {
+    println("----- Url path of a Guid in 24h  ----")
     val hbaseConnection = HBaseConnectionFactory.createConnection()
     val table = hbaseConnection.getTable(TableName.valueOf("bai4", "pageviewlog"))
 
@@ -199,7 +191,7 @@ object SparkHBase {
     }
   }
 
-  def getMostUsedIPsByGuid(guid: Long): Unit = {
+  def getMostUsedIPsByGuid(guid: Long, date: Long): Unit = {
     println("----- Most IP of a Guid  ----")
 
     val guidDF = spark.read.schema(schema).parquet(datalog)
@@ -213,18 +205,20 @@ object SparkHBase {
           rows.map(row => {
             val get = new Get(Bytes.toBytes(Option(row.getAs[java.sql.Timestamp]("cookieCreate")).map(_.getTime).getOrElse(0L)))
             get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"))
-            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip")) // mặc định sẽ lấy ra tất cả các cột, dùng lệnh này giúp chỉ lấy cột age
-            (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))), Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip"))))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("path")) // mặc định sẽ lấy ra tất cả các cột, dùng lệnh này giúp chỉ lấy cột age
+            (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))),
+              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))),
+              Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("path"))))
           })
         } finally {
           //          hbaseConnection.close()
         }
-      }).toDF("guid", "ip")
+      }).toDF("guid", "timeCreate", "path")
 
     guidAndIpDF.persist()
     guidAndIpDF.show()
-    val result: DataFrame = guidAndIpDF.filter($"guid" === guid).groupBy("ip").count().orderBy(desc("count")).toDF("ip", "count")
-
+    val result = guidAndIpDF.filter($"guid" === guid && $"timeCreate" > date && $"timeCreate" < date + (24 * 60 * 60 * 1000)).select("path").distinct()
     result.show()
   }
 
@@ -408,11 +402,11 @@ object SparkHBase {
     //    readHBaseThenWriteToHDFS()
     //    datalogEx()
     //    kmeanEx(3)
-    //    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17")
+        getUrlVisitedByGuid(8133866058245435043L, Timestamp.valueOf("2018-08-10 09:56:18").getTime)
 
     //    getMostUsedIPsByGuid(8133866058245435043L)
-//    findLatestAccessTimeByGuid(8133866058245435043L)
-    getGUIDByOsCodeAndBrowsecode(10,16,1533195266000L,1533995266000L)
+    //    findLatestAccessTimeByGuid(8133866058245435043L)
+    //    getGUIDByOsCodeAndBrowsecode(10, 16, 1533195266000L, 1533995266000L)
   }
 }
 
