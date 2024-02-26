@@ -253,8 +253,8 @@ object SparkHBase {
               Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip"))))
           })
         } finally {
-          table.close()
-          connection.close()
+//          table.close()
+//          connection.close()
         }
       }).toDF("guid", "timeCreate", "ip")
 
