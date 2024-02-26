@@ -311,7 +311,7 @@ object SparkHBase {
       $"timeCreate" > t1 && $"timeCreate" < t2)
 
     println("Guid has osCode & browserCode in time between t1 & t2 is: ")
-    getGuidByOsCode.show()
+    getGuidByOsCode.show(50) // in ra 50 bản ghi
     guidAndTimeDF.unpersist()
   }
 
