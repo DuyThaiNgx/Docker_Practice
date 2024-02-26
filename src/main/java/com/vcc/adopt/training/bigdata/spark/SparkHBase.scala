@@ -244,7 +244,7 @@ object SparkHBase {
         val table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
         try {
           rows.map(row => {
-            val get = new Get(Bytes.toBytes(row.getAs[Long]("guid")))
+            val get = new Get(Bytes.toBytes(Option(row.getAs[java.sql.Timestamp]("cookieCreate")).map(_.getTime).getOrElse(0L)))
             get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"))
             get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
             get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"))
