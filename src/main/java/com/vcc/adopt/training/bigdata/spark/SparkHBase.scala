@@ -295,8 +295,8 @@ object SparkHBase {
             (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))),
               //              new Timestamp(Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate")))),
               Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))),
-              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("osCode"))),
-              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"))))
+              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("osCode"))),
+              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"))))
           })
         } finally {
           //          table.close()
