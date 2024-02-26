@@ -249,7 +249,8 @@ object SparkHBase {
             get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
             get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"))
             (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))),
-              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))),
+              new Timestamp(Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate")))),
+//              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))),
               Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip"))))
           })
         } finally {
@@ -261,6 +262,9 @@ object SparkHBase {
     guidAndTimeDF.persist()
     guidAndTimeDF.show()
 
+    val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    val formattedDF = guidAndTimeDF.withColumn("timeCreateFormatted",
+      $"timeCreate".cast("timestamp").cast("string"))
     val latestAccessTimeDF = guidAndTimeDF.filter($"guid" === guid).orderBy(desc("timeCreate")).limit(1)
 
     println(s"Latest Access Time for GUID $guid:")
