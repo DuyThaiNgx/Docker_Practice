@@ -411,7 +411,7 @@ object SparkHBase {
     //    getUrlVisitedByGuid(6638696843075557544L, "2018-08-10 10:57:17")
 
     //    getMostUsedIPsByGuid(8133866058245435043L)
-    findLatestAccessTimeByGuid(8133866058245435043L)
+//    findLatestAccessTimeByGuid(8133866058245435043L)
     getGUIDByOsCodeAndBrowsecode(10,16,1533195266000L,1533995266000L)
   }
 }
