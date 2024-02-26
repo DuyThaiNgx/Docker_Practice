@@ -274,7 +274,7 @@ object SparkHBase {
   def getGUIDByOsCodeAndBrowsecode(osCode: Int, browserCode: Int, t1: Long, t2: Long): Unit = {
     println("----- Tính lấy các guid mà có oscode= x, browsercode = y, thời gian createtime nằm trong khoảng từ t1-t2 ----")
 
-    val spark = SparkSession.builder().appName("GetGuid").getOrCreate()
+    val spark: SparkSession = SparkSession.builder().getOrCreate()
 
     // Read data from parquet file
     val guidDF = spark.read.schema(schema).parquet(datalog)
