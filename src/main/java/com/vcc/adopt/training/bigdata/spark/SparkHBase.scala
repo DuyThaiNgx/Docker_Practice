@@ -360,7 +360,7 @@ object SparkHBase {
             (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))), Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip"))))
           })
         } finally {
-          hbaseConnection.close()
+//          hbaseConnection.close()
         }
       }).toDF("guid", "ip")
 
