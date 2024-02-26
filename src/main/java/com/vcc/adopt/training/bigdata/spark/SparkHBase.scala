@@ -61,149 +61,6 @@ object SparkHBase {
     StructField("category", IntegerType, nullable = true)
   ))
 
-  // ######################################################### START #######################################################
-  //  private def readHDFSThenPutToHBase(): Unit = {
-  //    // Định nghĩa kiểu dữ liệu của mô hình log
-  //    val schema = StructType(Seq(
-  //      StructField("timeCreate", TimestampType, nullable = true),
-  //      StructField("cookieCreate", TimestampType, nullable = true),
-  //      StructField("browserCode", IntegerType, nullable = true),
-  //      StructField("browserVer", StringType, nullable = true),
-  //      StructField("osCode", IntegerType, nullable = true),
-  //      StructField("osVer", StringType, nullable = true),
-  //      StructField("ip", LongType, nullable = true),
-  //      StructField("locId", IntegerType, nullable = true),
-  //      StructField("domain", StringType, nullable = true),
-  //      StructField("siteId", IntegerType, nullable = true),
-  //      StructField("cId", IntegerType, nullable = true),
-  //      StructField("path", StringType, nullable = true),
-  //      StructField("referer", StringType, nullable = true),
-  //      StructField("guid", LongType, nullable = true),
-  //      StructField("flashVersion", StringType, nullable = true),
-  //      StructField("jre", StringType, nullable = true),
-  //      StructField("sr", StringType, nullable = true),
-  //      StructField("sc", StringType, nullable = true),
-  //      StructField("geographic", IntegerType, nullable = true),
-  //      StructField("category", IntegerType, nullable = true)
-  //    ))
-  //    // Khởi tạo Spark Session
-  //    val spark = SparkSession.builder()
-  //      .appName("ReadDatWriteParquet")
-  //      .master("local[*]")
-  //      .getOrCreate()
-  //
-  //    // Đường dẫn đến tập tin dat
-  //    val datFilePath = "hdfs://namenode:9000/datalog/sampledata/mergedata.dat"
-  //
-  //    // Đọc tập tin dat với schema đã định nghĩa
-  //    val datDataFrame = spark.read
-  //      .option("delimiter", "\t")
-  //      .schema(schema)
-  //      .format("csv")
-  //      .load(datFilePath)
-  //
-  //    // Hiển thị nội dung của DataFrame
-  //    datDataFrame.show(100)
-  //
-  //    // Kết nối tới HBase
-  //    val hbaseConnection = HBaseConnectionFactory.createConnection()
-  //
-  //    try {
-  //      datDataFrame.foreachPartition(rows => {
-  //        val hbaseConnection = HBaseConnectionFactory.createConnection()
-  //        val table = hbaseConnection.getTable(TableName.valueOf("person", "person_info"))
-  //
-  //
-  //        for (row <- rows) {
-  //          val put = new Put(Bytes.toBytes(row.getAs[Long]("guid")))
-  //
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"), Bytes.toBytes(row.getAs[Timestamp]("timeCreate").toString))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cookieCreate"), Bytes.toBytes(row.getAs[Timestamp]("cookieCreate").toString))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserCode"), Bytes.toBytes(row.getAs[Int]("browserCode")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("browserVer"), Bytes.toBytes(row.getAs[String]("browserVer")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osCode"), Bytes.toBytes(row.getAs[Int]("osCode")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("osVer"), Bytes.toBytes(row.getAs[String]("osVer")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"), Bytes.toBytes(row.getAs[Long]("ip")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("locId"), Bytes.toBytes(row.getAs[Int]("locId")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("domain"), Bytes.toBytes(row.getAs[String]("domain")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("siteId"), Bytes.toBytes(row.getAs[Int]("siteId")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("cId"), Bytes.toBytes(row.getAs[Int]("cId")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("path"), Bytes.toBytes(row.getAs[String]("path")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("referer"), Bytes.toBytes(row.getAs[String]("referer")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"), Bytes.toBytes(row.getAs[Long]("guid")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("flashVersion"), Bytes.toBytes(row.getAs[String]("flashVersion")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("jre"), Bytes.toBytes(row.getAs[String]("jre")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sr"), Bytes.toBytes(row.getAs[String]("sr")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("sc"), Bytes.toBytes(row.getAs[String]("sc")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("geographic"), Bytes.toBytes(row.getAs[Int]("geographic")))
-  //          put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("category"), Bytes.toBytes(row.getAs[Int]("category")))
-  //
-  //          table.put(put)
-  //        }
-  //
-  //        table.close()
-  //      })
-  //    } finally {
-  //      hbaseConnection.close()
-  //    }
-  //
-  //    // Đóng kết nối tới HBase
-  //    hbaseConnection.close()
-  //
-  //    // Đóng Spark Session
-  //    spark.stop()
-  //  }
-
-
-  // ######################################################### END #######################################################
-
-
-  private def createDataFrameAndPutToHDFS(): Unit = {
-    println(s"----- Make person info dataframe then write to parquet at ${personInfoLogPath} ----")
-
-    // tạo person-info dataframe và lưu vào HDFS
-    val data = Seq(
-      Row(1L, "Alice", 25),
-      Row(2L, "Bob", 30),
-      Row(3L, "Charlie", 22),
-      Row(4L, "Yorn", 22)
-    )
-    val schema = StructType(Seq(
-      StructField("timeCreate", TimestampType, nullable = true),
-      StructField("cookieCreate", TimestampType, nullable = true),
-      StructField("browserCode", IntegerType, nullable = true),
-      StructField("browserVer", StringType, nullable = true),
-      StructField("osCode", IntegerType, nullable = true),
-      StructField("osVer", StringType, nullable = true),
-      StructField("ip", LongType, nullable = true),
-      StructField("locId", IntegerType, nullable = true),
-      StructField("domain", StringType, nullable = true),
-      StructField("siteId", IntegerType, nullable = true),
-      StructField("cId", IntegerType, nullable = true),
-      StructField("path", StringType, nullable = true),
-      StructField("referer", StringType, nullable = true),
-      StructField("guid", LongType, nullable = true),
-      StructField("flashVersion", StringType, nullable = true),
-      StructField("jre", StringType, nullable = true),
-      StructField("sr", StringType, nullable = true),
-      StructField("sc", StringType, nullable = true),
-      StructField("geographic", IntegerType, nullable = true),
-      StructField("category", IntegerType, nullable = true)
-    ))
-
-    val df = spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
-    df.show()
-    df.write
-      .mode("overwrite") // nếu file này đã tồn tại trước đó, sẽ ghi đè
-      .parquet(personInfoLogPath)
-
-    // tạo person-id-list và lưu vào HDFS
-    df.select("personId")
-      .write
-      .mode("overwrite")
-      .parquet(personIdListLogPath)
-  }
-
   private def readHDFSThenPutToHBase(): Unit = {
     println("----- Read pageViewLog.parquet on HDFS then put to table pageviewlog ----")
     var df: DataFrame = spark.read.schema(schema).parquet(datalog)
@@ -343,7 +200,7 @@ object SparkHBase {
   }
 
   def getMostUsedIPsByGuid(guid: Long): Unit = {
-    println("----- Most IP of a Guid (input: guid=> output: sort ds ip theo số lần xuất hiện) ----")
+    println("----- Most IP of a Guid  ----")
 
     val guidDF = spark.read.schema(schema).parquet(datalog)
     import spark.implicits._
@@ -360,7 +217,7 @@ object SparkHBase {
             (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))), Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip"))))
           })
         } finally {
-//          hbaseConnection.close()
+          //          hbaseConnection.close()
         }
       }).toDF("guid", "ip")
 
@@ -370,6 +227,49 @@ object SparkHBase {
 
     result.show()
   }
+
+  def findLatestAccessTimeByGuid(guid: Long): Unit = {
+    println("----- Latest Access Time of a Guid  ----")
+
+    val spark = SparkSession.builder().appName("LatestAccessTime").getOrCreate()
+    val datalog = "path_to_your_datalog_file"
+
+    // Read data from parquet file
+    val guidDF = spark.read.schema(schema).parquet(datalog)
+    import spark.implicits._
+
+    val guidAndTimeDF = guidDF
+      .repartition(5)
+      .mapPartitions((rows: Iterator[Row]) => {
+        val connection = HBaseConnectionFactory.createConnection()
+        val table = connection.getTable(TableName.valueOf("bai4", "pageviewlog"))
+        try {
+          rows.map(row => {
+            val get = new Get(Bytes.toBytes(row.getAs[Long]("guid")))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("guid"))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))
+            get.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("ip"))
+            (Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("guid"))),
+              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("timeCreate"))),
+              Bytes.toLong(table.get(get).getValue(Bytes.toBytes("cf"), Bytes.toBytes("ip"))))
+          })
+        } finally {
+          table.close()
+          connection.close()
+        }
+      }).toDF("guid", "timeCreate", "ip")
+
+    guidAndTimeDF.persist()
+    guidAndTimeDF.show()
+
+    val latestAccessTimeDF = guidAndTimeDF.filter($"guid" === guid).orderBy(desc("timeCreate")).limit(1)
+
+    println(s"Latest Access Time for GUID $guid:")
+    latestAccessTimeDF.show()
+
+    guidAndTimeDF.unpersist()
+  }
+
   def datalogEx(): Unit = {
     // Khởi tạo SparkSession
     val spark = SparkSession.builder()
@@ -456,44 +356,10 @@ object SparkHBase {
     spark.stop()
   }
 
-  //  private def kmeanEx(k: Int): Unit = {
-  //    println("Start")
-  //    val data: DataFrame = spark.read.text(output4)
-  //      .toDF("data")
-  //
-  //    // Chuyển đổi dữ liệu từ cột 'data' sang cột 'x' và 'y'
-  //    val parsedData = data.selectExpr("cast(split(data, ',')[0] as double) as x", "cast(split(data, ',')[1] as double) as y")
-  //
-  //    // Hiển thị dữ liệu
-  //    //    parsedData.show()
-  //
-  //    // Tạo một đối tượng KMeans
-  //    val assembler = new VectorAssembler()
-  //      .setInputCols(Array("x", "y"))
-  //      .setOutputCol("features")
-  //
-  //    val dataWithFeatures = assembler.transform(parsedData)
-  //    //    dataWithFeatures.show()
-  //    // ####
-  //
-  //
-  //    val kmeans = new KMeans()
-  //      .setK(k) // Số lượng cụm
-  //      .setSeed(1L) // Seed để tái tạo kết quả
-  //
-  //    val model = kmeans.fit(dataWithFeatures)
-  //
-  //    val centroids = model.clusterCenters
-  //    centroids.foreach(println)
-  //
-  //    val predictions = model.transform(dataWithFeatures)
-  //    predictions.show(30)
-  //  }
-
   def main(args: Array[String]): Unit = {
     val connection = ConnectionFactory.createConnection()
     //    createDataFrameAndPutToHDFS()
-//        readHDFSThenPutToHBase()
+    //        readHDFSThenPutToHBase()
     //    readHBaseThenWriteToHDFS()
     //    datalogEx()
     //    kmeanEx(3)
