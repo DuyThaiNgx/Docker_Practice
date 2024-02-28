@@ -133,7 +133,7 @@ object SparkHBase {
           table.put(puts)
         }
       } finally {
-        hbaseConnection.close()
+//        hbaseConnection.close()
       }
     })
   }
