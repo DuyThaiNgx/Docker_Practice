@@ -46,7 +46,11 @@ object SparkHBase {
 
       // Thực hiện truy vấn
       val statement = connection.createStatement()
-      val query = "SELECT concat(de.dept_no,\"_\", de.emp_no) as dept_emp, de.from_date as de_from_date, de.to_date as de_to_date, e.emp_no, e.birth_date, e.first_name, e.last_name, e.gender, e.hire_date, d.dept_no, d.dept_name, dm.from_date as dm_from_date, dm.to_date as dm_to_date FROM dept_emp de\nleft join employees e on de.emp_no = e.emp_no\nleft join departments d on de.dept_no = d.dept_no\nleft join dept_manager dm on de.dept_no = dm.dept_no and de.emp_no = dm.emp_no;"
+      val query = "SELECT concat(de.dept_no,\"_\", de.emp_no) as dept_emp, de.from_date as de_from_date, " +
+        "de.to_date as de_to_date, e.emp_no, e.birth_date, e.first_name, e.last_name, e.gender, e.hire_date, d.dept_no, " +
+        "d.dept_name, dm.from_date as dm_from_date, dm.to_date as dm_to_date FROM dept_emp de\n" +
+        "left join employees e on de.emp_no = e.emp_no\nleft join departments d on de.dept_no = d.dept_no\n" +
+        "left join dept_manager dm on de.dept_no = dm.dept_no and de.emp_no = dm.emp_no;"
       resultSet = statement.executeQuery(query)
 
       deptEmp = {
@@ -137,6 +141,82 @@ object SparkHBase {
       }
     })
   }
+
+
+  private def readMySqlSalaries(): Unit = {
+    println("----- Read employees on salaries ----")
+    var deptEmp: DataFrame = null
+    try {
+      // Load driver
+      Class.forName(driver)
+
+      // Tạo kết nối
+      connection = DriverManager.getConnection(url, username, password)
+
+      // Thực hiện truy vấn
+      val statement = connection.createStatement()
+      val query = "SELECT * From salaries"
+      resultSet = statement.executeQuery(query)
+
+      deptEmp = {
+        import spark.implicits._
+        val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
+          (row.getString("emp_no"),
+            row.getString("salary"),
+            row.getString("from_date"),
+            row.getString("to_date")
+          )
+        }
+        val df = rows.toSeq.toDF("emp_no", "salary", "from_date", "to_date")
+        df
+      }
+
+    } catch {
+      case e: Exception => e.printStackTrace()
+    } finally {
+      // Đóng kết nối
+      if (resultSet != null) resultSet.close()
+      if (connection != null) connection.close()
+    }
+    deptEmp = deptEmp
+      .withColumn("country", lit("US"))
+      .repartition(5)
+
+    val batchPutSize = 100
+
+    deptEmp.foreachPartition((rows: Iterator[Row]) => {
+      // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài). Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
+      val hbaseConnection = HBaseConnectionFactory.createConnection()
+      try {
+        val table = hbaseConnection.getTable(TableName.valueOf("bai5", "salary"))
+        val puts = new util.ArrayList[Put]()
+        for (row <- rows) {
+          val emp_no = row.getAs[Int]("emp_no")
+          val salary = row.getAs[String]("salary")
+          val from_date = row.getAs[String]("from_date")
+          val to_date = row.getAs[String]("to_date")
+
+
+          val put = new Put(Bytes.toBytes(emp_no))
+          put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("emp_no"), Bytes.toBytes(emp_no))
+          put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("from_date"), Bytes.toBytes(from_date))
+          put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("to_date"), Bytes.toBytes(to_date))
+          put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("salary"), Bytes.toBytes(to_date))
+          puts.add(put)
+          if (puts.size > batchPutSize) {
+            table.put(puts)
+            puts.clear()
+          }
+        }
+        if (puts.size() > 0) { // đẩy nốt phần còn lại
+          table.put(puts)
+        }
+      } finally {
+        //        hbaseConnection.close()
+      }
+    })
+  }
+
 
   def main(args: Array[String]): Unit = {
     readMySqlThenPutToHBase()
