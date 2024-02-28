@@ -2,7 +2,6 @@ package com.vcc.adopt.training.bigdata.spark
 import com.vcc.adopt.utils.hbase.HBaseConnectionFactory
 import org.apache.hadoop.hbase.TableName
 import org.apache.hadoop.hbase.client.Put
-import org.apache.kafka.common.serialization.Serdes.Bytes
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.hadoop.hbase.util.Bytes
@@ -68,7 +67,7 @@ object SparkHBase {
             row.getString("dm_to_date")
           )
         }
-        val df = rows.toSeq.toDF("dept_emp", "de_from_date", "de_to_date", "emp_no", "birth_date", "first_name", "last_name", "gender", "hire_date", "dept_no", "dept_name", "dm_from_date", "dm_to_date")
+        val df = rows.toSeq.toDF("dept_emp", "de_from_date", "de_to_date","emp_no","birth_date","first_name","last_name","gender","hire_date","dept_no","dept_name","dm_from_date","dm_to_date")
         df
       }
 
