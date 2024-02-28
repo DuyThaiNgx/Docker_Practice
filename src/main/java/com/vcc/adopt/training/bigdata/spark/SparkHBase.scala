@@ -28,7 +28,7 @@ object SparkHBase {
 
     try {
       // Load driver
-      Class.forName("com.mysql.cj.jdbc.Driver")
+      Class.forName(driver)
 
       // Tạo kết nối
       connection = DriverManager.getConnection(url, username, password)
