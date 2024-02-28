@@ -36,10 +36,12 @@ object SparkHBase {
       // Thực hiện truy vấn
       val statement = connection.createStatement()
       val query = "SELECT * FROM dept_emp"
+      val query1= "SELECT * from employees"
       resultSet = statement.executeQuery(query)
+      resultSet = statement.executeQuery(query1)
 
       val data = resultSetToDataFrame(resultSet)
-      data.show()
+      data.show(100)
 
     } catch {
       case e: Exception => e.printStackTrace()
