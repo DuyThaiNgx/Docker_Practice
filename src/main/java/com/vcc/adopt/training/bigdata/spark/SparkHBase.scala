@@ -17,9 +17,12 @@ object SparkHBase {
   def resultSetToDataFrame(resultSet: ResultSet): DataFrame = {
     import spark.implicits._
     val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
-      (row.getString("dept_no"), row.getInt("emp_no"))
+      (row.getString("dept_no"), row.getInt("emp_no"),
+        row.getString("first_name"), row.getString("last_name"),
+        row.getDate("birth_date"), row.getDate("hire_date")
+      )
     }
-    val df = rows.toSeq.toDF("dept_no", "emp_no")
+    val df = rows.toSeq.toDF("dept_no", "emp_no", "first_nam", "last_name", "birth_date", "hire_date")
     df
   }
 
