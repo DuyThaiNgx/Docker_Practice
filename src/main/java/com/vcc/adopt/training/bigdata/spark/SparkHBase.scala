@@ -1,4 +1,5 @@
 package com.vcc.adopt.training.bigdata.spark
+
 import com.vcc.adopt.utils.hbase.HBaseConnectionFactory
 import org.apache.hadoop.hbase.TableName
 import org.apache.hadoop.hbase.client.Put
@@ -22,21 +23,21 @@ object SparkHBase {
   val password = "23092002"
   var connection: Connection = null
   var resultSet: ResultSet = null
-//  def resultSetToDataFrame(resultSet: ResultSet): DataFrame = {
-//    import spark.implicits._
-//    val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
-//      (row.getString("dept_no"), row.getInt("emp_no"),
-//        row.getString("first_name"), row.getString("last_name"),
-//        row.getDate("birth_date"), row.getDate("hire_date")
-//      )
-//    }
-//    val df = rows.toSeq.toDF("dept_no", "emp_no", "first_nam", "last_name", "birth_date", "hire_date")
-//    df
-//  }
+  //  def resultSetToDataFrame(resultSet: ResultSet): DataFrame = {
+  //    import spark.implicits._
+  //    val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
+  //      (row.getString("dept_no"), row.getInt("emp_no"),
+  //        row.getString("first_name"), row.getString("last_name"),
+  //        row.getDate("birth_date"), row.getDate("hire_date")
+  //      )
+  //    }
+  //    val df = rows.toSeq.toDF("dept_no", "emp_no", "first_nam", "last_name", "birth_date", "hire_date")
+  //    df
+  //  }
 
   private def readMySqlThenPutToHBase(): Unit = {
     println("----- Read employees on mySql then put to table bai5:deptemp ----")
-    var deptEmp : DataFrame = null
+    var deptEmp: DataFrame = null
     try {
       // Load driver
       Class.forName(driver)
@@ -71,7 +72,7 @@ object SparkHBase {
             row.getString("dm_to_date")
           )
         }
-        val df = rows.toSeq.toDF("dept_emp", "de_from_date", "de_to_date","emp_no","birth_date","first_name","last_name","gender","hire_date","dept_no","dept_name","dm_from_date","dm_to_date")
+        val df = rows.toSeq.toDF("dept_emp", "de_from_date", "de_to_date", "emp_no", "birth_date", "first_name", "last_name", "gender", "hire_date", "dept_no", "dept_name", "dm_from_date", "dm_to_date")
         df
       }
 
@@ -137,7 +138,7 @@ object SparkHBase {
           table.put(puts)
         }
       } finally {
-//        hbaseConnection.close()
+        //        hbaseConnection.close()
       }
     })
   }
@@ -219,7 +220,8 @@ object SparkHBase {
 
 
   def main(args: Array[String]): Unit = {
-    readMySqlThenPutToHBase()
+    //    readMySqlThenPutToHBase()
+    readMySqlSalaries()
   }
 }
 
