@@ -334,7 +334,7 @@ object SparkHBase {
     Class.forName(driver)
 
     // Tạo kết nối
-    connectTitle = DriverManager.getConnection(url, username, password)
+    connection = DriverManager.getConnection(url, username, password)
     val statement = connection.createStatement()
     val query = "SELECT emp_no from employees;"
     resultSet = statement.executeQuery(query)
