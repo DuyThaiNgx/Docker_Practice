@@ -23,6 +23,7 @@ object SparkHBase {
   val username = "root"
   val password = "23092002"
   var connection: Connection = null
+  var connect: Connection = null
   var resultSet: ResultSet = null
   //  def resultSetToDataFrame(resultSet: ResultSet): DataFrame = {
   //    import spark.implicits._
@@ -153,11 +154,11 @@ object SparkHBase {
     Class.forName(driver)
 
     // Tạo kết nối
-    connection = DriverManager.getConnection(url, username, password)
+    connect= DriverManager.getConnection(url, username, password)
 
     // Thực hiện truy vấn
     val countQuerry = "SELECT COUNT(*) AS row_count FROM salaries"
-    val queryStatement = connection.createStatement()
+    val queryStatement = connect.createStatement()
     val resultSetRow = queryStatement.executeQuery(countQuerry)
     resultSetRow.next()
     val rowNumber = resultSetRow.getInt("row_count")
@@ -166,14 +167,13 @@ object SparkHBase {
     for (i <- 0 until partitions) {
       val offset = i * sizeQuery // Offset cho mỗi phần
       val limit = sizeQuery // Số lượng dòng dữ liệu trong mỗi phần
-      connection = DriverManager.getConnection(url, username, password)
-      // Thực hiện truy vấn SQL cho phần hiện tại
-      val query = "SELECT concat(s.emp_no, \"_\", s.from_date) as row_key, s.from_date, s.to_date, s.salary, " +
-        "s.emp_no FROM salaries s LIMIT " + limit + " OFFSET " + offset
-      val statement = connection.createStatement()
-      val resultSet = statement.executeQuery(query)
-
       try {
+        connection = DriverManager.getConnection(url, username, password)
+        // Thực hiện truy vấn SQL cho phần hiện tại
+        val query = "SELECT concat(s.emp_no, \"_\", s.from_date) as row_key, s.from_date, s.to_date, s.salary, " +
+          "s.emp_no FROM salaries s LIMIT " + limit + " OFFSET " + offset
+        val statement = connection.createStatement()
+        val resultSet = statement.executeQuery(query)
         salaries = {
           import spark.implicits._
           val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
