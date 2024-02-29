@@ -372,11 +372,11 @@ object SparkHBase {
             get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("hire_date"))
             (
               Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("emp_no"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("birth_date"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("first_name"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("last_name"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("gender"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("hire_date"))),
+              Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("birth_date"))),
+              Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("first_name"))),
+              Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("last_name"))),
+              Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("gender"))),
+              Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("hire_date"))),
             )
           })
         } finally {
@@ -406,11 +406,11 @@ object SparkHBase {
             if (table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("emp_no")) != null) {
               (
                 Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("emp_no"))),
-                Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("birth_date"))),
-                Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("first_name"))),
-                Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("last_name"))),
-                Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("gender"))),
-                Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("hire_date")))
+                Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("birth_date"))),
+                Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("first_name"))),
+                Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("last_name"))),
+                Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("gender"))),
+                Bytes.toString(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("hire_date")))
               )
             }
             else {
