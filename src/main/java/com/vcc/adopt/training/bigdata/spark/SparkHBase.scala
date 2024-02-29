@@ -333,6 +333,7 @@ object SparkHBase {
   def main(args: Array[String]): Unit = {
     //    readMySqlThenPutToHBase()
     //    readMySqlSalaries()
+    readMySqlTitles()
   }
 }
 
