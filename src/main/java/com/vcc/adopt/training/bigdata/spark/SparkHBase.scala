@@ -6,10 +6,11 @@ import org.apache.hadoop.hbase.client.Put
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.hadoop.hbase.util.Bytes
-
+import spire.math.QuickSort.limit
 
 import java.util
 import java.sql.{Connection, DriverManager, ResultSet}
+import java.time.temporal.TemporalQueries.offset
 
 
 object SparkHBase {
@@ -146,76 +147,90 @@ object SparkHBase {
 
   private def readMySqlSalaries(): Unit = {
     println("----- Read employees on salaries ----")
-    var deptEmp: DataFrame = null
-    try {
-      // Load driver
-      Class.forName(driver)
+    var salaries : DataFrame = null
 
-      // Tạo kết nối
+    // Load driver
+    Class.forName(driver)
+
+    // Tạo kết nối
+    connection = DriverManager.getConnection(url, username, password)
+
+    // Thực hiện truy vấn
+    val countQuerry = "SELECT COUNT(*) AS row_count FROM salarries"
+    val queryStatement = connection.createStatement()
+    val resultSetRow = queryStatement.executeQuery(countQuerry)
+    resultSetRow.next()
+    val rowNumber = resultSetRow.getInt("row_count")
+    val sizeQuery = 300000
+    val partitions = math.ceil(rowNumber.toDouble / sizeQuery).toInt
+    for (i <- 0 until partitions) {
       connection = DriverManager.getConnection(url, username, password)
-
-      // Thực hiện truy vấn
+      // Thực hiện truy vấn SQL cho phần hiện tại
+      val query = "SELECT concat(s.emp_no, \"_\", s.from_date) as row_key, s.from_date, s.to_date, s.salary, " +
+        "s.emp_no FROM salaries s LIMIT " + limit + " OFFSET " + offset
       val statement = connection.createStatement()
-      val query = "SELECT * From salaries"
-      resultSet = statement.executeQuery(query)
-
-      deptEmp = {
-        import spark.implicits._
-        val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
-          (row.getString("emp_no"),
-            row.getString("salary"),
-            row.getString("from_date"),
-            row.getString("to_date")
-          )
-        }
-        val df = rows.toSeq.toDF("emp_no", "salary", "from_date", "to_date")
-        df
-      }
-
-    } catch {
-      case e: Exception => e.printStackTrace()
-    } finally {
-      // Đóng kết nối
-      if (resultSet != null) resultSet.close()
-      if (connection != null) connection.close()
-    }
-    deptEmp = deptEmp
-      .withColumn("country", lit("US"))
-      .repartition(5)
-
-    val batchPutSize = 100
-
-    deptEmp.foreachPartition((rows: Iterator[Row]) => {
-      // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài). Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
-      val hbaseConnection = HBaseConnectionFactory.createConnection()
+      val resultSet = statement.executeQuery(query)
       try {
-        val table = hbaseConnection.getTable(TableName.valueOf("bai5", "salary"))
-        val puts = new util.ArrayList[Put]()
-        for (row <- rows) {
-          val emp_no = row.getAs[Int]("emp_no")
-          val salary = row.getAs[String]("salary")
-          val from_date = row.getAs[String]("from_date")
-          val to_date = row.getAs[String]("to_date")
-
-
-          val put = new Put(Bytes.toBytes(emp_no))
-          put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("emp_no"), Bytes.toBytes(emp_no))
-          put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("from_date"), Bytes.toBytes(from_date))
-          put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("to_date"), Bytes.toBytes(to_date))
-          put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("salary"), Bytes.toBytes(to_date))
-          puts.add(put)
-          if (puts.size > batchPutSize) {
-            table.put(puts)
-            puts.clear()
+        salaries = {
+          import spark.implicits._
+          val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
+            (row.getString("emp_no"),
+              row.getString("salary"),
+              row.getString("from_date"),
+              row.getString("to_date")
+            )
           }
+          val df = rows.toSeq.toDF("emp_no", "salary", "from_date", "to_date")
+          df
         }
-        if (puts.size() > 0) { // đẩy nốt phần còn lại
-          table.put(puts)
-        }
+
+      } catch {
+        case e: Exception => e.printStackTrace()
       } finally {
-        //        hbaseConnection.close()
+        // Đóng kết nối
+        if (resultSet != null) resultSet.close()
+        if (connection != null) connection.close()
       }
-    })
+      salaries = salaries
+        .withColumn("country", lit("US"))
+        .repartition(5)
+
+      val batchPutSize = 100
+
+      salaries.foreachPartition((rows: Iterator[Row]) => {
+        // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài).
+        // Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
+        val hbaseConnection = HBaseConnectionFactory.createConnection()
+        try {
+          val table = hbaseConnection.getTable(TableName.valueOf("bai5", "salary"))
+          val puts = new util.ArrayList[Put]()
+          for (row <- rows) {
+            val emp_no = row.getAs[Int]("emp_no")
+            val salary = row.getAs[String]("salary")
+            val from_date = row.getAs[String]("from_date")
+            val to_date = row.getAs[String]("to_date")
+
+
+            val put = new Put(Bytes.toBytes(emp_no))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("emp_no"), Bytes.toBytes(emp_no))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("from_date"), Bytes.toBytes(from_date))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("to_date"), Bytes.toBytes(to_date))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("salary"), Bytes.toBytes(to_date))
+            puts.add(put)
+            if (puts.size > batchPutSize) {
+              table.put(puts)
+              puts.clear()
+            }
+          }
+          if (puts.size() > 0) { // đẩy nốt phần còn lại
+            table.put(puts)
+          }
+        } finally {
+          //        hbaseConnection.close()
+        }
+      })
+    }
+
   }
 
 
