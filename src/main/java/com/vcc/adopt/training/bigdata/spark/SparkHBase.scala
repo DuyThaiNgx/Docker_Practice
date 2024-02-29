@@ -255,15 +255,13 @@ object SparkHBase {
     val sizeQuery = 300000
     val partitions = math.ceil(rowNumber.toDouble / sizeQuery).toInt
     for (i <- 0 until partitions) {
-      val offset = i * sizeQuery // Offset cho mỗi phần
-      val limit = sizeQuery // Số lượng dòng dữ liệu trong mỗi phần
       try {
-        connection = DriverManager.getConnection(url, username, password)
+        connectTitle = DriverManager.getConnection(url, username, password)
         // Thực hiện truy vấn SQL cho phần hiện tại
         val query = "Select concat(t.emp_no, \"_\", t.from_date) as row_key, t.from_date, t.to_date, " +
           "t.title, t.emp_no from titles as t;"
 
-        val statement = connection.createStatement()
+        val statement = connectTitle.createStatement()
         val resultSet = statement.executeQuery(query)
         titles = {
           import spark.implicits._
@@ -284,7 +282,7 @@ object SparkHBase {
       } finally {
         // Đóng kết nối
         if (resultSet != null) resultSet.close()
-        if (connection != null) connection.close()
+        if (connectTitle != null) connectTitle.close()
       }
       titles=titles
         .withColumn("country", lit("US"))
