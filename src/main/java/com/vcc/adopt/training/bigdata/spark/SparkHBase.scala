@@ -11,8 +11,6 @@ import java.util
 import java.sql.{Connection, DriverManager, ResultSet}
 
 
-
-
 object SparkHBase {
   val spark: SparkSession = SparkSession.builder().getOrCreate()
   spark.sparkContext.setLogLevel("WARN")
@@ -24,6 +22,7 @@ object SparkHBase {
   val password = "23092002"
   var connection: Connection = null
   var connect: Connection = null
+  var connectTitle: Connection = null
   var resultSet: ResultSet = null
   //  def resultSetToDataFrame(resultSet: ResultSet): DataFrame = {
   //    import spark.implicits._
@@ -148,13 +147,13 @@ object SparkHBase {
 
   private def readMySqlSalaries(): Unit = {
     println("----- Read employees on salaries ----")
-    var salaries : DataFrame = null
+    var salaries: DataFrame = null
 
     // Load driver
     Class.forName(driver)
 
     // Tạo kết nối
-    connect= DriverManager.getConnection(url, username, password)
+    connect = DriverManager.getConnection(url, username, password)
 
     // Thực hiện truy vấn
     val countQuerry = "SELECT COUNT(*) AS row_count FROM salaries"
@@ -235,13 +234,105 @@ object SparkHBase {
         }
       })
     }
+  }
+
+  private def readMySqlTitles(): Unit = {
+    println("----- Read employees on salaries ----")
+    var titles: DataFrame = null
+
+    // Load driver
+    Class.forName(driver)
+
+    // Tạo kết nối
+    connectTitle = DriverManager.getConnection(url, username, password)
+
+    // Thực hiện truy vấn
+    val countQuerry = "SELECT COUNT(*) AS row_count FROM titles"
+    val queryStatement = connect.createStatement()
+    val resultSetRow = queryStatement.executeQuery(countQuerry)
+    resultSetRow.next()
+    val rowNumber = resultSetRow.getInt("row_count")
+    val sizeQuery = 300000
+    val partitions = math.ceil(rowNumber.toDouble / sizeQuery).toInt
+    for (i <- 0 until partitions) {
+      val offset = i * sizeQuery // Offset cho mỗi phần
+      val limit = sizeQuery // Số lượng dòng dữ liệu trong mỗi phần
+      try {
+        connection = DriverManager.getConnection(url, username, password)
+        // Thực hiện truy vấn SQL cho phần hiện tại
+        val query = "Select concat(t.emp_no, \"_\", t.from_date) as row_key, t.from_date, t.to_date, " +
+          "t.title, t.emp_no from titles as t;"
+
+        val statement = connection.createStatement()
+        val resultSet = statement.executeQuery(query)
+        titles = {
+          import spark.implicits._
+          val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
+            (row.getString("row_key"),
+              row.getInt("emp_no"),
+              row.getString("title"),
+              row.getString("from_date"),
+              row.getString("to_date")
+            )
+          }
+          val df = rows.toSeq.toDF("row_key", "emp_no", "title", "from_date", "to_date")
+          df
+        }
+
+      } catch {
+        case e: Exception => e.printStackTrace()
+      } finally {
+        // Đóng kết nối
+        if (resultSet != null) resultSet.close()
+        if (connection != null) connection.close()
+      }
+      titles=titles
+        .withColumn("country", lit("US"))
+        .repartition(5)
+
+      val batchPutSize = 100
+
+      titles.foreachPartition((rows: Iterator[Row]) => {
+        // tạo connection hbase buộc phải tạo bên trong mỗi partition (không được tạo bên ngoài).
+        // Tối ưu hơn sẽ dùng connectionPool để reuse lại connection trên các worker
+        val hbaseConnection = HBaseConnectionFactory.createConnection()
+        try {
+          val table = hbaseConnection.getTable(TableName.valueOf("bai5", "title"))
+          val puts = new util.ArrayList[Put]()
+          for (row <- rows) {
+            val row_key = row.getAs[String]("row_key")
+            val emp_no = row.getAs[Int]("emp_no")
+            val salary = row.getAs[String]("title")
+            val from_date = row.getAs[String]("from_date")
+            val to_date = row.getAs[String]("to_date")
+
+
+            val put = new Put(Bytes.toBytes(row_key))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("emp_no"), Bytes.toBytes(emp_no))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("from_date"), Bytes.toBytes(from_date))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("to_date"), Bytes.toBytes(to_date))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("title"), Bytes.toBytes(salary))
+            puts.add(put)
+            if (puts.size > batchPutSize) {
+              table.put(puts)
+              puts.clear()
+            }
+          }
+          if (puts.size() > 0) { // đẩy nốt phần còn lại
+            table.put(puts)
+          }
+        } finally {
+          //        hbaseConnection.close()
+        }
+      })
+    }
 
   }
 
 
   def main(args: Array[String]): Unit = {
     //    readMySqlThenPutToHBase()
-    readMySqlSalaries()
+    //    readMySqlSalaries()
   }
 }
 
