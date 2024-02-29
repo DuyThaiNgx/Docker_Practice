@@ -177,7 +177,8 @@ object SparkHBase {
         salaries = {
           import spark.implicits._
           val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
-            (row.getString("emp_no"),
+            (row.getString("row_key"),
+              row.getInt("emp_no"),
               row.getString("salary"),
               row.getString("from_date"),
               row.getString("to_date")
@@ -218,7 +219,7 @@ object SparkHBase {
             put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("emp_no"), Bytes.toBytes(emp_no))
             put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("from_date"), Bytes.toBytes(from_date))
             put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("to_date"), Bytes.toBytes(to_date))
-            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("salary"), Bytes.toBytes(to_date))
+            put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("salary"), Bytes.toBytes(salary))
             puts.add(put)
             if (puts.size > batchPutSize) {
               table.put(puts)
