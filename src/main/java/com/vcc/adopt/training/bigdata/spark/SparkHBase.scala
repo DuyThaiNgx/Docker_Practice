@@ -156,7 +156,7 @@ object SparkHBase {
     connection = DriverManager.getConnection(url, username, password)
 
     // Thực hiện truy vấn
-    val countQuerry = "SELECT COUNT(*) AS row_count FROM salarries"
+    val countQuerry = "SELECT COUNT(*) AS row_count FROM salaries"
     val queryStatement = connection.createStatement()
     val resultSetRow = queryStatement.executeQuery(countQuerry)
     resultSetRow.next()
