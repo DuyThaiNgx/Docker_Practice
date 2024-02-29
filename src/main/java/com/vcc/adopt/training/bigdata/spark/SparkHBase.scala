@@ -360,7 +360,7 @@ object SparkHBase {
       .repartition(5)
       .mapPartitions((rows: Iterator[Row]) => {
         val hbaseConnection = HBaseConnectionFactory.createConnection()
-        val table = hbaseConnection.getTable(TableName.valueOf("bai5", "dept_emp"))
+        val table = hbaseConnection.getTable(TableName.valueOf("bai5", "dept_empt"))
         try {
           rows.map(row => {
             val get = new Get(Bytes.toBytes(dept + "_" + row.getAs[String]("emp_no")))
@@ -392,7 +392,7 @@ object SparkHBase {
       .repartition(5)
       .mapPartitions((rows: Iterator[Row]) => {
         val hbaseConnection = HBaseConnectionFactory.createConnection()
-        val table = hbaseConnection.getTable(TableName.valueOf("bai5", "dept_emp"))
+        val table = hbaseConnection.getTable(TableName.valueOf("bai5", "dept_empt"))
         try {
           rows.map(row => {
             val get = new Get(Bytes.toBytes(dept + "_" + row.getAs[String]("emp_no")))
