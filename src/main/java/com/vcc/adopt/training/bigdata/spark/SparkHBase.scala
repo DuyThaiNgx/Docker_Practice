@@ -330,13 +330,12 @@ object SparkHBase {
   private def readMySqlEx1(dept: String): Unit = {
     println("----- Lấy được danh sách, nhân viên & quản lý của 1 phòng ban cần truy vấn ----")
     var employees_dept: DataFrame = null
-    // Load driver
-    Class.forName(driver)
-
+    var connectionEX1: Connection = null
     try {
-      var connectionEX1: Connection = null
+      Class.forName(driver)
       // Tạo kết nối
       connectionEX1 = DriverManager.getConnection(url, username, password)
+      // Truy van
       val statement = connectionEX1.createStatement()
       val query = "SELECT emp_no from employees;"
       resultSet = statement.executeQuery(query)
