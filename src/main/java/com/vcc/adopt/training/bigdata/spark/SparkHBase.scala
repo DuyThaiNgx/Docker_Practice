@@ -332,10 +332,11 @@ object SparkHBase {
     var employees_dept: DataFrame = null
     // Load driver
     Class.forName(driver)
+    var connectionEX1: Connection = null
 
     // Tạo kết nối
-    connection = DriverManager.getConnection(url, username, password)
-    val statement = connection.createStatement()
+    connectionEX1 = DriverManager.getConnection(url, username, password)
+    val statement = connectionEX1.createStatement()
     val query = "SELECT emp_no from employees;"
     resultSet = statement.executeQuery(query)
     try {
@@ -352,7 +353,7 @@ object SparkHBase {
     } finally {
       // Đóng kết nối
       if (resultSet != null) resultSet.close()
-      if (connection != null) connection.close()
+      if (connectionEX1 != null) connectionEX1.close()
     }
     import spark.implicits._
     val empListDF = employees_dept
