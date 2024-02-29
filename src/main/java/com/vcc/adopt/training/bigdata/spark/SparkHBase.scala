@@ -248,7 +248,7 @@ object SparkHBase {
 
     // Thực hiện truy vấn
     val countQuerry = "SELECT COUNT(*) AS row_count FROM titles"
-    val queryStatement = connect.createStatement()
+    val queryStatement = connectTitle.createStatement()
     val resultSetRow = queryStatement.executeQuery(countQuerry)
     resultSetRow.next()
     val rowNumber = resultSetRow.getInt("row_count")
