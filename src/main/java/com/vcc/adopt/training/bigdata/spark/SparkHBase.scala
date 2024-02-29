@@ -6,11 +6,10 @@ import org.apache.hadoop.hbase.client.Put
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.hadoop.hbase.util.Bytes
-import spire.math.QuickSort.limit
 
 import java.util
 import java.sql.{Connection, DriverManager, ResultSet}
-import scala.reflect.internal.util.NoPosition.offset
+
 
 
 
@@ -165,12 +164,15 @@ object SparkHBase {
     val sizeQuery = 300000
     val partitions = math.ceil(rowNumber.toDouble / sizeQuery).toInt
     for (i <- 0 until partitions) {
+      val offset = i * sizeQuery // Offset cho mỗi phần
+      val limit = sizeQuery // Số lượng dòng dữ liệu trong mỗi phần
       connection = DriverManager.getConnection(url, username, password)
       // Thực hiện truy vấn SQL cho phần hiện tại
       val query = "SELECT concat(s.emp_no, \"_\", s.from_date) as row_key, s.from_date, s.to_date, s.salary, " +
         "s.emp_no FROM salaries s LIMIT " + limit + " OFFSET " + offset
       val statement = connection.createStatement()
       val resultSet = statement.executeQuery(query)
+
       try {
         salaries = {
           import spark.implicits._
