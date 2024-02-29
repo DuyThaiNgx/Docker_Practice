@@ -184,7 +184,7 @@ object SparkHBase {
               row.getString("to_date")
             )
           }
-          val df = rows.toSeq.toDF("emp_no", "salary", "from_date", "to_date")
+          val df = rows.toSeq.toDF("row_key", "emp_no", "salary", "from_date", "to_date")
           df
         }
 
@@ -209,13 +209,14 @@ object SparkHBase {
           val table = hbaseConnection.getTable(TableName.valueOf("bai5", "salary"))
           val puts = new util.ArrayList[Put]()
           for (row <- rows) {
+            val row_key = row.getAs[String]("row_key")
             val emp_no = row.getAs[Int]("emp_no")
             val salary = row.getAs[String]("salary")
             val from_date = row.getAs[String]("from_date")
             val to_date = row.getAs[String]("to_date")
 
 
-            val put = new Put(Bytes.toBytes(emp_no))
+            val put = new Put(Bytes.toBytes(row_key))
             put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("emp_no"), Bytes.toBytes(emp_no))
             put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("from_date"), Bytes.toBytes(from_date))
             put.addColumn(Bytes.toBytes("cf_infor"), Bytes.toBytes("to_date"), Bytes.toBytes(to_date))
