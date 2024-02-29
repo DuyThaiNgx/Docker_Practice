@@ -364,19 +364,19 @@ object SparkHBase {
         try {
           rows.map(row => {
             val get = new Get(Bytes.toBytes(dept + "_" + row.getAs[String]("emp_no")))
-            get.addColumn(Bytes.toBytes("employee"), Bytes.toBytes("emp_no"))
-            get.addColumn(Bytes.toBytes("employee"), Bytes.toBytes("birth_date"))
-            get.addColumn(Bytes.toBytes("employee"), Bytes.toBytes("first_name"))
-            get.addColumn(Bytes.toBytes("employee"), Bytes.toBytes("last_name"))
-            get.addColumn(Bytes.toBytes("employee"), Bytes.toBytes("gender"))
-            get.addColumn(Bytes.toBytes("employee"), Bytes.toBytes("hire_date"))
+            get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("emp_no"))
+            get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("birth_date"))
+            get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("first_name"))
+            get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("last_name"))
+            get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("gender"))
+            get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("hire_date"))
             (
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("employee"), Bytes.toBytes("emp_no"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("employee"), Bytes.toBytes("birth_date"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("employee"), Bytes.toBytes("first_name"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("employee"), Bytes.toBytes("last_name"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("employee"), Bytes.toBytes("gender"))),
-              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("employee"), Bytes.toBytes("hire_date"))),
+              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("emp_no"))),
+              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("birth_date"))),
+              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("first_name"))),
+              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("last_name"))),
+              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("gender"))),
+              Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("hire_date"))),
             )
           })
         } finally {
@@ -403,7 +403,7 @@ object SparkHBase {
             get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("last_name"))
             get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("gender"))
             get.addColumn(Bytes.toBytes("cf_employees"), Bytes.toBytes("hire_date"))
-            if (table.get(get).getValue(Bytes.toBytes("employee"), Bytes.toBytes("emp_no")) != null) {
+            if (table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("emp_no")) != null) {
               (
                 Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("emp_no"))),
                 Bytes.toInt(table.get(get).getValue(Bytes.toBytes("cf_employees"), Bytes.toBytes("birth_date"))),
