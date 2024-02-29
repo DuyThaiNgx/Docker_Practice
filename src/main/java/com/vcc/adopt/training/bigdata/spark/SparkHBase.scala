@@ -10,7 +10,8 @@ import spire.math.QuickSort.limit
 
 import java.util
 import java.sql.{Connection, DriverManager, ResultSet}
-import java.time.temporal.TemporalQueries.offset
+import scala.reflect.internal.util.NoPosition.offset
+
 
 
 object SparkHBase {
