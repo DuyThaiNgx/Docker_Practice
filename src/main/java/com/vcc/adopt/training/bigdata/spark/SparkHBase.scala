@@ -332,14 +332,14 @@ object SparkHBase {
     var employees_dept: DataFrame = null
     // Load driver
     Class.forName(driver)
-    var connectionEX1: Connection = null
 
-    // Tạo kết nối
-    connectionEX1 = DriverManager.getConnection(url, username, password)
-    val statement = connectionEX1.createStatement()
-    val query = "SELECT emp_no from employees;"
-    resultSet = statement.executeQuery(query)
     try {
+      var connectionEX1: Connection = null
+      // Tạo kết nối
+      connectionEX1 = DriverManager.getConnection(url, username, password)
+      val statement = connectionEX1.createStatement()
+      val query = "SELECT emp_no from employees;"
+      resultSet = statement.executeQuery(query)
       employees_dept = {
         import spark.implicits._
         val rows = Iterator.continually(resultSet).takeWhile(_.next()).map { row =>
